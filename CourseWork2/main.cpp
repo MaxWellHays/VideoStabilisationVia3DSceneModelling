@@ -122,6 +122,21 @@ static Scalar randomColor()
 	return Scalar(rand() & 255, rand() & 255, rand() & 255);
 }
 
+void fiter_points(vector<Point2f>& points1, vector<Point2f>& points2, Mat& mask)
+{
+	vector<Point2f> filteredPoints1, filteredPoints2;
+	for (int i = 0; i < mask.rows; ++i)
+	{
+		if (mask.at<UINT8>(i))
+		{
+			filteredPoints1.push_back(points1[i]);
+			filteredPoints2.push_back(points2[i]);
+		}
+	}
+	points1 = filteredPoints1;
+	points2 = filteredPoints2;
+}
+
 int main(int argc, char** argv)
 {
 	auto folderPath("C:\\Users\\Maxim\\Documents\\coursework\\timelapse1\\");
@@ -138,41 +153,23 @@ int main(int argc, char** argv)
 		Mat mask;
 		Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
 
-		vector<Point2f> filteredPoints1, filteredPoints2;
-		for (int i = 0; i < mask.rows; ++i)
-		{
-			if (mask.at<UINT8>(i))
-			{
-				filteredPoints1.push_back(points1[i]);
-				filteredPoints2.push_back(points2[i]);
-				cout << 1;
-			}
-			else
-				cout << 0;
-		}
+		fiter_points(points1, points2, mask);
 
-		vector<Vec3f> lines1;
-		vector<Scalar> colors;
-		for (int i = 0; i < filteredPoints1.size(); ++i)
-		{
-			colors.push_back(randomColor());
-		}
+		Mat h1, h2;
+		stereoRectifyUncalibrated(points1, points2, F, images[0].size(), h1, h2);
 
-		computeCorrespondEpilines(Mat(filteredPoints1), 2, F, lines1);
-		for (int i = 0; i < lines1.size(); i++)
-		{
-			Vec3f *it = &lines1[i];
-			line(images[0], Point(0, -(*it)[2] / (*it)[1]), Point(images[0].cols, -((*it)[2] + (*it)[0] * images[1].cols) / (*it)[1]), colors[i]);
-			circle(images[0], filteredPoints1[i], 5, colors[i], -1);
-		}
+		Mat rect1;
+		warpPerspective(images[0], rect1, h1, images[0].size());
+		Mat rect2;
+		warpPerspective(images[1], rect2, h2, images[1].size());
 
-		computeCorrespondEpilines(Mat(filteredPoints2), 1, F, lines1);
-		for (int i = 0; i < lines1.size(); i++)
-		{
-			Vec3f *it = &lines1[i];
-			line(images[1], Point(0, -(*it)[2] / (*it)[1]), Point(images[1].cols, -((*it)[2] + (*it)[0] * images[1].cols) / (*it)[1]), colors[i]);
-			circle(images[1], filteredPoints2[i], 5, colors[i], -1);
-		}
+		StereoBM stereo(CV_STEREO_BM_BASIC, 16);
+		Mat r;
+		cvtColor(rect1, rect1, CV_BGR2GRAY);
+		cvtColor(rect2, rect2, CV_BGR2GRAY);
+		stereo(rect1, rect2, r);
+
+		images.push_back(r);
 
 		showImages(images);
 	}
