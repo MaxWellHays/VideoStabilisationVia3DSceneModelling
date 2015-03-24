@@ -1,3 +1,4 @@
+#include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -122,6 +123,30 @@ static Scalar randomColor()
 	return Scalar(rand() & 255, rand() & 255, rand() & 255);
 }
 
+Mat getHomography(vector<DMatch>& good_matches, vector<KeyPoint>& keypoints1, vector<KeyPoint>& keypoints2)
+{
+	vector<Point2f> obj;
+	vector<Point2f> scene;
+
+	for (int i = 0; i < good_matches.size(); i++)
+	{
+		obj.push_back(keypoints1[good_matches[i].queryIdx].pt);
+		scene.push_back(keypoints2[good_matches[i].trainIdx].pt);
+	}
+
+	return findHomography(obj, scene, CV_RANSAC);
+}
+
+vector<Mat> getHomography(vector<vector<DMatch>>& good_matches, vector<vector<KeyPoint>>& keypoints)
+{
+	vector<Mat> homographies;
+	for (auto i = 0; i < good_matches.size(); ++i)
+	{
+		homographies.push_back(getHomography(good_matches[i], keypoints[i], keypoints[i + 1]));
+	}
+	return homographies;
+}
+
 void fiter_points(vector<Point2f>& points1, vector<Point2f>& points2, Mat& mask)
 {
 	vector<Point2f> filteredPoints1, filteredPoints2;
@@ -146,30 +171,27 @@ int main(int argc, char** argv)
 		vector<vector<KeyPoint>> keypoints;
 		vector<Mat> descriptors;
 
-		getKeypoints(images, keypoints, descriptors);
+		/*getKeypoints(images, keypoints, descriptors);
 		vector<vector<DMatch>> good_mathces(get_good_matches(descriptors));
 		vector<Point2f> points1, points2;
 		getPointPairs(good_mathces[0], keypoints[0], keypoints[1], points1, points2);
 		Mat mask;
 		Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
+		fiter_points(points1, points2, mask);*/
 
-		fiter_points(points1, points2, mask);
+		Mat flow;
+		Mat im1, im2;
+		cvtColor(images[0], im1, CV_BGR2GRAY);
+		cvtColor(images[1], im2, CV_BGR2GRAY);
+		calcOpticalFlowFarneback(im1, im2, flow, 0.5, 3, 20, 10, 5, 1.2, 0);
+		vector<Mat> flowPlanes;
+		split(flow, flowPlanes);
+		Mat mag, ang;
+		cartToPolar(flowPlanes[0], flowPlanes[1], mag, ang);
 
-		Mat h1, h2;
-		stereoRectifyUncalibrated(points1, points2, F, images[0].size(), h1, h2);
-
-		Mat rect1;
-		warpPerspective(images[0], rect1, h1, images[0].size());
-		Mat rect2;
-		warpPerspective(images[1], rect2, h2, images[1].size());
-
-		StereoBM stereo(CV_STEREO_BM_BASIC, 16);
-		Mat r;
-		cvtColor(rect1, rect1, CV_BGR2GRAY);
-		cvtColor(rect2, rect2, CV_BGR2GRAY);
-		stereo(rect1, rect2, r);
-
-		images.push_back(r);
+		mag.convertTo(mag, CV_8UC1);
+		equalizeHist(mag, mag);
+		images.push_back(mag);
 
 		showImages(images);
 	}
