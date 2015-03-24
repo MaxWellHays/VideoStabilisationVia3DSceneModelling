@@ -56,10 +56,10 @@ void getKeypoints(const vector<Mat>& images, vector<vector<KeyPoint>>& keypoints
 	keypoints.clear();
 	descriptors.clear();
 
-	SurfFeatureDetector detector;
+	SiftFeatureDetector detector;
 	detector.detect(images, keypoints);
 
-	SurfDescriptorExtractor extractor;
+	SiftDescriptorExtractor extractor;
 	for (size_t i = 0; i < images.size(); i++)
 	{
 		descriptors.push_back(Mat());
@@ -88,7 +88,7 @@ vector<DMatch> get_good_matches(Mat& descriptor1, Mat& descriptor2, FlannBasedMa
 
 	for (auto i = 0; i < descriptor1.rows; i++)
 	{
-		if (matches[i].distance < 2 * min_dist)
+		if (matches[i].distance < 3 * min_dist)
 		{
 			good_matches.push_back(matches[i]);
 		}
@@ -171,13 +171,18 @@ int main(int argc, char** argv)
 		vector<vector<KeyPoint>> keypoints;
 		vector<Mat> descriptors;
 
-		/*getKeypoints(images, keypoints, descriptors);
+		getKeypoints(images, keypoints, descriptors);
 		vector<vector<DMatch>> good_mathces(get_good_matches(descriptors));
-		vector<Point2f> points1, points2;
+
+		/*vector<Point2f> points1, points2;
 		getPointPairs(good_mathces[0], keypoints[0], keypoints[1], points1, points2);
 		Mat mask;
 		Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
 		fiter_points(points1, points2, mask);*/
+
+		auto homographies(getHomography(good_mathces, keypoints));
+
+		warpPerspective(images[0], images[0], homographies[0], images[0].size());
 
 		Mat flow;
 		Mat im1, im2;
