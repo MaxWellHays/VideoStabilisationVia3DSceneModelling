@@ -87,7 +87,7 @@ vector<DMatch> get_good_matches(Mat& descriptor1, Mat& descriptor2, FlannBasedMa
 
 	for (auto i = 0; i < descriptor1.rows; i++)
 	{
-		if (matches[i].distance < 3 * min_dist)
+		if (matches[i].distance < 2 * min_dist)
 		{
 			good_matches.push_back(matches[i]);
 		}
@@ -125,7 +125,7 @@ static Scalar randomColor()
 int main(int argc, char** argv)
 {
 	auto folderPath("C:\\Users\\Maxim\\Documents\\coursework\\timelapse1\\");
-	auto images(getImagesFromFolder(folderPath, regex(".+\\.jpg")));
+	auto images(getImagesFromFolder(folderPath, regex(".+\\.jpg", regex_constants::icase)));
 	if (images.size())
 	{
 		vector<vector<KeyPoint>> keypoints;
@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 		vector<Point2f> points1, points2;
 		getPointPairs(good_mathces[0], keypoints[0], keypoints[1], points1, points2);
 		Mat mask;
-		Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask);
+		Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
 
 		vector<Point2f> filteredPoints1, filteredPoints2;
 		for (int i = 0; i < mask.rows; ++i)
@@ -161,16 +161,14 @@ int main(int argc, char** argv)
 		computeCorrespondEpilines(Mat(filteredPoints1), 2, F, lines1);
 		for (int i = 0; i < lines1.size(); i++)
 		{
-			// Draw the line between first and last column
 			Vec3f *it = &lines1[i];
-			line(images[0], Point(0, -(*it)[2] / (*it)[1]), Point(images[1].cols, -((*it)[2] + (*it)[0] * images[1].cols) / (*it)[1]), colors[i]);
+			line(images[0], Point(0, -(*it)[2] / (*it)[1]), Point(images[0].cols, -((*it)[2] + (*it)[0] * images[1].cols) / (*it)[1]), colors[i]);
 			circle(images[0], filteredPoints1[i], 5, colors[i], -1);
 		}
 
 		computeCorrespondEpilines(Mat(filteredPoints2), 1, F, lines1);
 		for (int i = 0; i < lines1.size(); i++)
 		{
-			// Draw the line between first and last column
 			Vec3f *it = &lines1[i];
 			line(images[1], Point(0, -(*it)[2] / (*it)[1]), Point(images[1].cols, -((*it)[2] + (*it)[0] * images[1].cols) / (*it)[1]), colors[i]);
 			circle(images[1], filteredPoints2[i], 5, colors[i], -1);
