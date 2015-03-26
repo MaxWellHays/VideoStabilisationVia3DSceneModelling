@@ -162,10 +162,17 @@ void fiter_points(vector<Point2f>& points1, vector<Point2f>& points2, Mat& mask)
 	points2 = filteredPoints2;
 }
 
+void fiter_points(vector<Point2f> &points1, vector<Point2f> &points2)
+{
+	Mat mask;
+	Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
+	fiter_points(points1, points2, mask);
+}
+
 int main(int argc, char** argv)
 {
 	auto folderPath("C:\\Users\\Maxim\\Documents\\coursework\\timelapse1\\");
-	auto images(getImagesFromFolder(folderPath, regex(".+\\.jpg", regex_constants::icase)));
+	auto images(getImagesFromFolder(folderPath, regex(".+\\.((jpg)|(png))", regex_constants::icase)));
 	if (images.size())
 	{
 		vector<vector<KeyPoint>> keypoints;
@@ -174,29 +181,34 @@ int main(int argc, char** argv)
 		getKeypoints(images, keypoints, descriptors);
 		vector<vector<DMatch>> good_mathces(get_good_matches(descriptors));
 
-		/*vector<Point2f> points1, points2;
+		vector<Point2f> points1, points2;
 		getPointPairs(good_mathces[0], keypoints[0], keypoints[1], points1, points2);
 		Mat mask;
 		Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
-		fiter_points(points1, points2, mask);*/
+		fiter_points(points1, points2, mask);
 
-		auto homographies(getHomography(good_mathces, keypoints));
+		vector<Vec3f> lines1;
+		vector<Scalar> colors;
+		for (int i = 0; i < points1.size(); ++i)
+		{
+			colors.push_back(randomColor());
+		}
 
-		warpPerspective(images[0], images[0], homographies[0], images[0].size());
+		computeCorrespondEpilines(Mat(points1), 2, F, lines1);
+		for (int i = 0; i < lines1.size(); i++)
+		{
+			Vec3f *it = &lines1[i];
+			line(images[0], Point(0, -(*it)[2] / (*it)[1]), Point(images[0].cols, -((*it)[2] + (*it)[0] * images[1].cols) / (*it)[1]), colors[i]);
+			circle(images[0], points1[i], 5, colors[i], -1);
+		}
 
-		Mat flow;
-		Mat im1, im2;
-		cvtColor(images[0], im1, CV_BGR2GRAY);
-		cvtColor(images[1], im2, CV_BGR2GRAY);
-		calcOpticalFlowFarneback(im1, im2, flow, 0.5, 3, 20, 10, 5, 1.2, 0);
-		vector<Mat> flowPlanes;
-		split(flow, flowPlanes);
-		Mat mag, ang;
-		cartToPolar(flowPlanes[0], flowPlanes[1], mag, ang);
-
-		mag.convertTo(mag, CV_8UC1);
-		equalizeHist(mag, mag);
-		images.push_back(mag);
+		computeCorrespondEpilines(Mat(points2), 1, F, lines1);
+		for (int i = 0; i < lines1.size(); i++)
+		{
+			Vec3f *it = &lines1[i];
+			line(images[1], Point(0, -(*it)[2] / (*it)[1]), Point(images[1].cols, -((*it)[2] + (*it)[0] * images[1].cols) / (*it)[1]), colors[i]);
+			circle(images[1], points2[i], 5, colors[i], -1);
+		}
 
 		showImages(images);
 	}
