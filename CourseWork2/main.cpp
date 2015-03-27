@@ -165,8 +165,57 @@ void fiter_points(vector<Point2f>& points1, vector<Point2f>& points2, Mat& mask)
 void fiter_points(vector<Point2f> &points1, vector<Point2f> &points2)
 {
 	Mat mask;
-	Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
+	auto F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
 	fiter_points(points1, points2, mask);
+}
+
+Mat hConcat(const Mat &s1, const Mat &s2)
+{
+	Mat result;
+	hconcat(s1, s2, result);
+	return result;
+}
+
+inline Point3f convertPointsToHomogeneous(const Point2f &point)
+{
+	return Point3f(point.x, point.y, 1);
+}
+
+inline Mat convertPointsToHomogeneous(const Mat &src)
+{
+	Mat result;
+	convertPointsToHomogeneous(src, result);
+	return result;
+}
+
+inline Mat splitScalar(const Mat &src)
+{
+	vector<Mat_<float>> layers;
+	split(src, layers);
+	Mat result;
+	hconcat(layers, result);
+	return result;
+}
+
+inline Mat transpose(const Mat &src)
+{
+	Mat result;
+	transpose(src, result);
+	return result;
+}
+
+inline Point3f convertPointsFromHomogeneous();
+
+void triangulate(vector<Point2f> points1, vector<Point2f> points2)
+{
+	Mat K(Mat_<float>::eye(3, 3));
+	Mat R1(Mat_<float>::eye(3, 3));
+	Mat IAndC(hConcat(Mat_<float>::eye(3, 3), Mat_<float>(3.0, 1.0, 0.0)));
+	Mat P1(K*R1*IAndC);
+	Mat invP1 = P1.inv(DECOMP_SVD);
+
+	Mat hPoints = transpose(splitScalar(convertPointsToHomogeneous(Mat(points1))));
+	hPoints = transpose(invP1*hPoints);
 }
 
 int main(int argc, char** argv)
@@ -185,30 +234,18 @@ int main(int argc, char** argv)
 		getPointPairs(good_mathces[0], keypoints[0], keypoints[1], points1, points2);
 		Mat mask;
 		Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
-		fiter_points(points1, points2, mask);
+		fiter_points(points1, points2);
 
 		vector<Vec3f> lines1;
 		vector<Scalar> colors;
 		for (int i = 0; i < points1.size(); ++i)
 		{
-			colors.push_back(randomColor());
+			auto c = randomColor();
+			circle(images[0], points1[i], 5, c, -1);
+			circle(images[1], points2[i], 5, c, -1);
 		}
 
-		computeCorrespondEpilines(Mat(points1), 2, F, lines1);
-		for (int i = 0; i < lines1.size(); i++)
-		{
-			Vec3f *it = &lines1[i];
-			line(images[0], Point(0, -(*it)[2] / (*it)[1]), Point(images[0].cols, -((*it)[2] + (*it)[0] * images[1].cols) / (*it)[1]), colors[i]);
-			circle(images[0], points1[i], 5, colors[i], -1);
-		}
-
-		computeCorrespondEpilines(Mat(points2), 1, F, lines1);
-		for (int i = 0; i < lines1.size(); i++)
-		{
-			Vec3f *it = &lines1[i];
-			line(images[1], Point(0, -(*it)[2] / (*it)[1]), Point(images[1].cols, -((*it)[2] + (*it)[0] * images[1].cols) / (*it)[1]), colors[i]);
-			circle(images[1], points2[i], 5, colors[i], -1);
-		}
+		triangulate(points1, points2);
 
 		showImages(images);
 	}
