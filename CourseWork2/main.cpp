@@ -3,11 +3,10 @@
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "opencv2/calib3d/calib3d.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
 #include <stdio.h>
 #include "dirent.h"
 #include <regex>
-#include <iostream>
+#include "cvsba.h"
 
 using namespace std;
 using namespace cv;
@@ -206,18 +205,6 @@ inline Mat transpose(const Mat &src)
 
 inline Point3f convertPointsFromHomogeneous();
 
-void triangulate(vector<Point2f> points1, vector<Point2f> points2)
-{
-	Mat K(Mat_<float>::eye(3, 3));
-	Mat R1(Mat_<float>::eye(3, 3));
-	Mat IAndC(hConcat(Mat_<float>::eye(3, 3), Mat_<float>(3.0, 1.0, 0.0)));
-	Mat P1(K*R1*IAndC);
-	Mat invP1 = P1.inv(DECOMP_SVD);
-
-	Mat hPoints = transpose(splitScalar(convertPointsToHomogeneous(Mat(points1))));
-	hPoints = transpose(invP1*hPoints);
-}
-
 int main(int argc, char** argv)
 {
 	auto folderPath("C:\\Users\\Maxim\\Documents\\coursework\\timelapse1\\");
@@ -245,7 +232,31 @@ int main(int argc, char** argv)
 			circle(images[1], points2[i], 5, c, -1);
 		}
 
-		triangulate(points1, points2);
+		cvsba::Sba sba;
+
+		vector<Point3f> points;
+		points.resize(points1.size());
+
+		vector<vector<Point2f>> imagePoints;
+		imagePoints.push_back(points1);
+		imagePoints.push_back(points2);
+
+		vector<vector<int>> visibility(points1.size());
+		for (int i = 0; i < visibility.size(); i++)
+		{
+			fill(visibility[i].begin(), visibility[i].end(), 1);
+		}
+
+		vector<Mat> cameraMatrix(points1.size());
+		fill(cameraMatrix.begin(), cameraMatrix.end(), Mat_<float>::eye(3, 3));
+		vector<Mat> R(points1.size());
+		fill(R.begin(), R.end(), Mat_<float>::eye(3, 3));
+		vector<Mat> T(points1.size());
+		fill(T.begin(), T.end(), Mat_<float>(3, 1));
+		vector<Mat> distCoeffs(points1.size());
+		fill(distCoeffs.begin(), distCoeffs.end(), Mat_<float>(5, 1));
+
+		sba.run(points, imagePoints, visibility, cameraMatrix, R, T, distCoeffs);
 
 		showImages(images);
 	}
