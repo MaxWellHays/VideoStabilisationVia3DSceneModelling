@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "dirent.h"
 #include <regex>
-#include "cvsba.h"
+#include "cvPba.h";
 
 using namespace std;
 using namespace cv;
@@ -164,7 +164,7 @@ void fiter_points(vector<Point2f>& points1, vector<Point2f>& points2, Mat& mask)
 void fiter_points(vector<Point2f> &points1, vector<Point2f> &points2)
 {
 	Mat mask;
-	auto F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
+	findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
 	fiter_points(points1, points2, mask);
 }
 
@@ -220,11 +220,8 @@ int main(int argc, char** argv)
 		vector<Point2f> points1, points2;
 		getPointPairs(good_mathces[0], keypoints[0], keypoints[1], points1, points2);
 		Mat mask;
-		Mat F = findFundamentalMat(Mat(points1), Mat(points2), mask, FM_RANSAC);
 		fiter_points(points1, points2);
 
-		vector<Vec3f> lines1;
-		vector<Scalar> colors;
 		for (int i = 0; i < points1.size(); ++i)
 		{
 			auto c = randomColor();
@@ -232,33 +229,15 @@ int main(int argc, char** argv)
 			circle(images[1], points2[i], 5, c, -1);
 		}
 
-		cvsba::Sba sba;
+		//showImages(images);
 
-		vector<Point3f> points;
-		points.resize(points1.size());
+		vector<vector<Point2f>> measurements;
+		measurements.push_back(points1);
+		measurements.push_back(points2);
 
-		vector<vector<Point2f>> imagePoints;
-		imagePoints.push_back(points1);
-		imagePoints.push_back(points2);
+		cvPba pba;
+		pba.RunBundleAdjustment(measurements);
 
-		vector<vector<int>> visibility(points1.size());
-		for (int i = 0; i < visibility.size(); i++)
-		{
-			fill(visibility[i].begin(), visibility[i].end(), 1);
-		}
-
-		vector<Mat> cameraMatrix(points1.size());
-		fill(cameraMatrix.begin(), cameraMatrix.end(), Mat_<float>::eye(3, 3));
-		vector<Mat> R(points1.size());
-		fill(R.begin(), R.end(), Mat_<float>::eye(3, 3));
-		vector<Mat> T(points1.size());
-		fill(T.begin(), T.end(), Mat_<float>(3, 1));
-		vector<Mat> distCoeffs(points1.size());
-		fill(distCoeffs.begin(), distCoeffs.end(), Mat_<float>(5, 1));
-
-		sba.run(points, imagePoints, visibility, cameraMatrix, R, T, distCoeffs);
-
-		showImages(images);
 	}
 	return 0;
 }
