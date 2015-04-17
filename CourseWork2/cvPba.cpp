@@ -33,9 +33,22 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 	ParallelBA pba(device);
 
 	camera_data.resize(2);
+
+	camera_data[0].SetFocalLength(900);
+	float translation[3] = { 0, 0, 0 };
+	camera_data[0].SetTranslation(translation);
+	float rotation[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+	camera_data[0].SetMatrixRotation(rotation);
+
+	camera_data[1] = CameraT(camera_data[0]);
+	translation[2] = -1;
+	camera_data[1].SetTranslation(translation);
+
 	pba.SetCameraData(camera_data.size(), &camera_data[0]);
 
-	point_data.resize(imagePoints[0].size());
+	Point3D tempPoint;
+	tempPoint.SetPoint(0, 0, 2);
+	point_data.resize(imagePoints[0].size(), tempPoint);
 	pba.SetPointData(point_data.size(), &point_data[0]);
 
 

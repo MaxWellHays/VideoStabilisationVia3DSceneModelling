@@ -229,7 +229,7 @@ int main(int argc, char** argv)
 			circle(images[1], points2[i], 5, c, -1);
 		}
 
-		//showImages(images);
+		showImages(images);
 
 		vector<vector<Point2f>> measurements;
 		measurements.push_back(points1);
