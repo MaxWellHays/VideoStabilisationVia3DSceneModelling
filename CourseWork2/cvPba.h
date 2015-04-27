@@ -8,5 +8,6 @@ class cvPba
 public:
 	cvPba();
 	~cvPba();
+	vector<Point3D_<float>> generateRough3dPoints(vector<cv::Point2f>& points, int width, int height);
 	void RunBundleAdjustment(vector<vector<cv::Point2f>> &imagePoints);
 };

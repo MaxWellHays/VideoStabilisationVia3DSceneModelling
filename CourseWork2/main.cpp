@@ -205,6 +205,17 @@ inline Mat transpose(const Mat &src)
 
 inline Point3f convertPointsFromHomogeneous();
 
+vector<Point2f> Center(vector<Point2f>& points, Size sizeOfImage)
+{
+	vector<Point2f> result;
+	auto center = Size_<int>(sizeOfImage.width, sizeOfImage.height);
+	for (auto& p : points)
+	{
+		result.push_back(Point2f(p.x - center.width / 2, -p.y + center.height / 2));
+	}
+	return result;
+}
+
 int main(int argc, char** argv)
 {
 	auto folderPath("C:\\Users\\Maxim\\Documents\\coursework\\timelapse1\\");
@@ -229,11 +240,11 @@ int main(int argc, char** argv)
 			circle(images[1], points2[i], 5, c, -1);
 		}
 
-		showImages(images);
+		//showImages(images);
 
 		vector<vector<Point2f>> measurements;
-		measurements.push_back(points1);
-		measurements.push_back(points2);
+		measurements.push_back(Center(points1, images[0].size()));
+		measurements.push_back(Center(points2, images[1].size()));
 
 		cvPba pba;
 		pba.RunBundleAdjustment(measurements);

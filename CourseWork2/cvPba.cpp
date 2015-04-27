@@ -13,6 +13,19 @@ cvPba::~cvPba()
 {
 }
 
+vector<Point3D_<float>> cvPba::generateRough3dPoints(vector<cv::Point2f>& points, int width, int height)
+{
+	vector<Point3D_<float>> result;
+	result.reserve(points.size());
+
+	for (auto& point : points)
+	{
+		result.push_back(Point3D());
+		result.back().SetPoint(point.x * 2 / width, point.y * 2 / height, 10.0f);
+	}
+	return result;
+}
+
 void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 {
 	vector<CameraT>        camera_data;    //camera (input/ouput)
@@ -46,9 +59,12 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 
 	pba.SetCameraData(camera_data.size(), &camera_data[0]);
 
-	Point3D tempPoint;
+	point_data = generateRough3dPoints(imagePoints[0], 750, 501);
+
+	/*Point3D tempPoint;
 	tempPoint.SetPoint(0, 0, 2);
-	point_data.resize(imagePoints[0].size(), tempPoint);
+	point_data.resize(imagePoints[0].size(), tempPoint);*/
+
 	pba.SetPointData(point_data.size(), &point_data[0]);
 
 
