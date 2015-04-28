@@ -52,6 +52,7 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 	camera_data[0].SetTranslation(translation);
 	float rotation[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 	camera_data[0].SetMatrixRotation(rotation);
+	camera_data[0].constant_camera = LOCK_FOCAL;
 
 	camera_data[1] = CameraT(camera_data[0]);
 	translation[2] = -1;
@@ -65,8 +66,5 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 
 	pba.SetProjection(measurements.size(), &measurements[0], &ptidx[0], &camidx[0]);
 
-	pba.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_STRUCTURE);
-	pba.RunBundleAdjustment();
-	pba.SetNextBundleMode(ParallelBA::BUNDLE_FULL);
 	pba.RunBundleAdjustment();
 }
