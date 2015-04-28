@@ -61,14 +61,12 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 
 	point_data = generateRough3dPoints(imagePoints[0], 750, 501);
 
-	/*Point3D tempPoint;
-	tempPoint.SetPoint(0, 0, 2);
-	point_data.resize(imagePoints[0].size(), tempPoint);*/
-
 	pba.SetPointData(point_data.size(), &point_data[0]);
-
 
 	pba.SetProjection(measurements.size(), &measurements[0], &ptidx[0], &camidx[0]);
 
+	pba.SetNextBundleMode(ParallelBA::BUNDLE_ONLY_STRUCTURE);
+	pba.RunBundleAdjustment();
+	pba.SetNextBundleMode(ParallelBA::BUNDLE_FULL);
 	pba.RunBundleAdjustment();
 }
