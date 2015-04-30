@@ -5,13 +5,15 @@ Point2D cvPba::ConvertCvPoint(cv::Point2f &point)
 	return Point2D(point.x, point.y);
 }
 
-cvPba::cvPba() :device(ParallelBA::PBA_CUDA_DEVICE_DEFAULT)
+cvPba::cvPba()
 {
 }
 
 cvPba::~cvPba()
 {
 }
+
+
 
 vector<Point3D_<float>> cvPba::generateRough3dPoints(vector<cv::Point2f>& points, int width, int height)
 {
@@ -24,6 +26,11 @@ vector<Point3D_<float>> cvPba::generateRough3dPoints(vector<cv::Point2f>& points
 		result.back().SetPoint(point.x * 2 / width, point.y * 2 / height, 10.0f);
 	}
 	return result;
+}
+
+float cvPba::getLockedMask(bool lockFocal, bool lockPosition, bool lockRotation, bool lockDistortion)
+{
+	return lockFocal*LOCK_FOCAL + lockPosition*LOCK_POSITION + lockRotation*LOCK_ROTATION + lockDistortion*LOCK_DISTORTION;
 }
 
 void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
@@ -43,7 +50,7 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 		ptidx.push_back(i);
 	}
 
-	ParallelBA pba(device);
+	ParallelBA pba;
 
 	camera_data.resize(2);
 
@@ -52,11 +59,13 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 	camera_data[0].SetTranslation(translation);
 	float rotation[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 	camera_data[0].SetMatrixRotation(rotation);
-	camera_data[0].constant_camera = LOCK_FOCAL;
+	camera_data[0].constant_camera = getLockedMask(true);
 
 	camera_data[1] = CameraT(camera_data[0]);
 	translation[2] = -1;
 	camera_data[1].SetTranslation(translation);
+
+	camera_data[0].constant_camera = getLockedMask(true, true, true);
 
 	pba.SetCameraData(camera_data.size(), &camera_data[0]);
 
@@ -66,5 +75,10 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 
 	pba.SetProjection(measurements.size(), &measurements[0], &ptidx[0], &camidx[0]);
 
-	pba.RunBundleAdjustment();
+	while (pba.RunBundleAdjustment() > 30);
+
+	camera_data[0].constant_camera = getLockedMask(false);
+	camera_data[0].constant_camera = getLockedMask(false);
+
+	while (pba.RunBundleAdjustment() > 30);
 }
