@@ -21,9 +21,15 @@
     <ClCompile Include="cvPba.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cloud3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cvPba.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cloud3d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

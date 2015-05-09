@@ -1,4 +1,7 @@
 #include "cvPba.h"
+#include <iostream>
+#include <fstream>
+#include "cloud3d.h"
 
 Point2D cvPba::ConvertCvPoint(cv::Point2f &point)
 {
@@ -12,8 +15,6 @@ cvPba::cvPba()
 cvPba::~cvPba()
 {
 }
-
-
 
 vector<Point3D_<float>> cvPba::generateRough3dPoints(vector<cv::Point2f>& points, int width, int height)
 {
@@ -81,4 +82,17 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 	camera_data[0].constant_camera = getLockedMask(false);
 
 	while (pba.RunBundleAdjustment() > 30);
+
+	cloud3d cloud;
+	for (auto& point : point_data)
+	{
+		std::cout << cloud.addPoint(cv::Point3f(point.xyz[0], point.xyz[1], point.xyz[2]));
+	}
+
+	std::ofstream stream;
+	stream.open("C:\\Users\\Maxim\\Documents\\coursework\\test.ply");
+
+	cloud.dumpPLY(stream);
+
+	stream.close();
 }
