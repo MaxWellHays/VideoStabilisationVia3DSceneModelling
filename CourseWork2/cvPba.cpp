@@ -34,17 +34,17 @@ float cvPba::getLockedMask(bool lockFocal, bool lockPosition, bool lockRotation,
 	return lockFocal*LOCK_FOCAL + lockPosition*LOCK_POSITION + lockRotation*LOCK_ROTATION + lockDistortion*LOCK_DISTORTION;
 }
 
-void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
+void cvPba::RunBundleAdjustment(std::pair<cloud2d, cloud2d> &imagePoints)
 {
 	vector<CameraT>        camera_data;    //camera (input/ouput)
 	vector<Point3D>        point_data;     //3D point(iput/output)
 	vector<Point2D>        measurements;   //measurment/projection vector
 	vector<int>            camidx, ptidx;  //index of camera/point for each projection
 
-	for (int i = 0; i < imagePoints[0].size(); ++i)
+	for (int i = 0; i < imagePoints.first.points.size(); ++i)
 	{
-		measurements.push_back(ConvertCvPoint(imagePoints[0][i]));
-		measurements.push_back(ConvertCvPoint(imagePoints[1][i]));
+		measurements.push_back(ConvertCvPoint(imagePoints.first.points[i]));
+		measurements.push_back(ConvertCvPoint(imagePoints.second.points[i]));
 		camidx.push_back(0);
 		camidx.push_back(1);
 		ptidx.push_back(i);
@@ -70,7 +70,7 @@ void cvPba::RunBundleAdjustment(vector<vector<cv::Point2f>>& imagePoints)
 
 	pba.SetCameraData(camera_data.size(), &camera_data[0]);
 
-	point_data = generateRough3dPoints(imagePoints[0], 750, 501);
+	point_data = generateRough3dPoints(imagePoints.first.points, 750, 501);
 
 	pba.SetPointData(point_data.size(), &point_data[0]);
 

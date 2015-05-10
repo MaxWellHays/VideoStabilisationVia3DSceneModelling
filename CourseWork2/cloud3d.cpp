@@ -35,9 +35,9 @@ void cloud3d::dumpPLY(std::ostream& out)
 		out << vertexes[i].x << " "
 			<< vertexes[i].y << " "
 			<< vertexes[i].z << " ";
-			out << (unsigned)(128) << " "
-				<< (unsigned)(128) << " "
-				<< (unsigned)(128) << std::endl;
+			out << unsigned(128) << " "
+				<< unsigned(128) << " "
+				<< unsigned(128) << std::endl;
 	}
 	//    SYNC_PRINT(("This 0x%X. Edges %d", this, edges.size()));
 

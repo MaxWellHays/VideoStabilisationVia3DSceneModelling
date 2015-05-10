@@ -1,6 +1,8 @@
 #pragma once
 #include <opencv2/core/core.hpp>
 #include <pba.h>
+#include "cloud2d.h"
+
 class cvPba
 {
 	static Point2D cvPba::ConvertCvPoint(cv::Point2f &point);
@@ -8,6 +10,6 @@ class cvPba
 public:
 	cvPba();
 	~cvPba();
-	void RunBundleAdjustment(vector<vector<cv::Point2f>> &imagePoints);
+	void RunBundleAdjustment(std::pair<cloud2d,cloud2d> &imagePoints);
 	float getLockedMask(bool lockFocal, bool lockPosition = false, bool lockRotation = false, bool lockDistortion = false);
 };
