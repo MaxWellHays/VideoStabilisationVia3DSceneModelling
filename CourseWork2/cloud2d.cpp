@@ -5,7 +5,6 @@ cloud2d::cloud2d()
 {
 }
 
-
 cloud2d::~cloud2d()
 {
 }

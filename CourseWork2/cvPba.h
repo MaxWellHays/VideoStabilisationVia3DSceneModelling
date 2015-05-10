@@ -10,6 +10,6 @@ class cvPba
 public:
 	cvPba();
 	~cvPba();
-	void RunBundleAdjustment(std::pair<cloud2d,cloud2d> &imagePoints);
-	float getLockedMask(bool lockFocal, bool lockPosition = false, bool lockRotation = false, bool lockDistortion = false);
+	void RunBundleAdjustment(std::pair<cloud2d, cloud2d> &imagePoints, cv::Mat R, cv::Mat T);
+	static float getLockedMask(bool lockFocal, bool lockPosition = false, bool lockRotation = false, bool lockDistortion = false);
 };

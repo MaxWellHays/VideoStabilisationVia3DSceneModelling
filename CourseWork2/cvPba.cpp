@@ -34,7 +34,7 @@ float cvPba::getLockedMask(bool lockFocal, bool lockPosition, bool lockRotation,
 	return lockFocal*LOCK_FOCAL + lockPosition*LOCK_POSITION + lockRotation*LOCK_ROTATION + lockDistortion*LOCK_DISTORTION;
 }
 
-void cvPba::RunBundleAdjustment(std::pair<cloud2d, cloud2d> &imagePoints)
+void cvPba::RunBundleAdjustment(std::pair<cloud2d, cloud2d> &imagePoints, cv::Mat R, cv::Mat T)
 {
 	vector<CameraT>        camera_data;    //camera (input/ouput)
 	vector<Point3D>        point_data;     //3D point(iput/output)
@@ -82,6 +82,17 @@ void cvPba::RunBundleAdjustment(std::pair<cloud2d, cloud2d> &imagePoints)
 	camera_data[0].constant_camera = getLockedMask(false);
 
 	while (pba.RunBundleAdjustment() > 30);
+
+	float r[3][3];
+	float t[3];
+	for (int i = 0; i < R.size().height; ++i)
+	{
+		for (int j = 0; j < R.size().width; ++j)
+		{
+			r[i][j] = R.at<double>(i, j);
+		}
+		t[i] = T.at<double>(i);
+	}
 
 	cloud3d cloud;
 	for (auto& point : point_data)
