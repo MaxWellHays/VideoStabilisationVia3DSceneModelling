@@ -77,8 +77,8 @@ int main(int argc, char** argv)
 		auto cloud2dPairs(keypoints::descriptorFilter(keypoints));
 		auto fundamentalMat = cloud2d::epipolarFilter(cloud2dPairs[0]);
 
-		//cloud2d::drawPoints(cloud2dPairs[0], images[0], images[1]);
-		//showImages(images);
+		cloud2d::drawPointsAndEpipolarLines(cloud2dPairs[0], fundamentalMat, images[0], images[1]);
+		showImages(images);
 
 		auto pair = extractExtrinsicParameters(fundamentalMat, 900, images[0].size().width / 2.0, images[0].size().height / 2.0);
 		cout << "R: " << endl << pair.first << endl;

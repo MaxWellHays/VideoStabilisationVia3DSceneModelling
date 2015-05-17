@@ -15,6 +15,8 @@ public:
 
 	static void drawPoints(std::pair<cloud2d, cloud2d> &pair, cv::Mat& image1, cv::Mat& image2);
 
+	static void drawPointsAndEpipolarLines(std::pair<cloud2d, cloud2d> &pair, cv::Mat fundamental, cv::Mat& image1, cv::Mat& image2);
+
 	void shiftAll(cv::Point2f offset);
 
 	void center(cv::Size imageSize);
