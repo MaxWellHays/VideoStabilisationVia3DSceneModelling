@@ -3,12 +3,18 @@
 cv::SIFT keypoints::detector;
 cv::FlannBasedMatcher keypoints::matcher;
 
+std::vector<cv::DMatch> keypoints::getAllMatches(cv::Mat& descriptor1, cv::Mat& descriptor2)
+{
+	std::vector<cv::DMatch> matches;
+	matcher.match(descriptor1, descriptor2, matches);
+	return matches;
+}
+
 std::vector<cv::DMatch> keypoints::getGoodMatches(cv::Mat& descriptor1, cv::Mat& descriptor2)
 {
-	std::vector<cv::DMatch > matches;
-	matcher.match(descriptor1, descriptor2, matches);
-	double max_dist = 0; double min_dist = 100;
+	std::vector<cv::DMatch> matches(getAllMatches(descriptor1, descriptor2));
 
+	double max_dist = 0; double min_dist = 100;
 	for (auto i = 0; i < descriptor1.rows; i++)
 	{
 		double dist = matches[i].distance;
@@ -30,8 +36,10 @@ std::vector<cv::DMatch> keypoints::getGoodMatches(cv::Mat& descriptor1, cv::Mat&
 
 keypoints::keypoints(cv::Mat &image)
 {
+	source_image = image;
 	detector.detect(image, key_points);
 	detector.compute(image, key_points, descriptor);
+	std::cout << "Finded " << key_points.size() << " keypoint for image" << std::endl;
 }
 
 std::vector<keypoints> keypoints::createKeypoints(std::vector<cv::Mat> &images)
@@ -49,7 +57,7 @@ std::vector<std::pair<cloud2d, cloud2d>> keypoints::descriptorFilter(std::vector
 	std::vector<std::vector<cv::DMatch>> matches;
 	for (int i = 0; i < keypointses.size() - 1; ++i)
 	{
-		matches.push_back(getGoodMatches(keypointses[i].descriptor, keypointses[i + 1].descriptor));
+		matches.push_back(getAllMatches(keypointses[i].descriptor, keypointses[i + 1].descriptor));
 	}
 
 	std::vector<std::pair<cloud2d, cloud2d>> result;

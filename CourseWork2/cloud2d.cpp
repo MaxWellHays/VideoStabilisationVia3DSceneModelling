@@ -35,11 +35,17 @@ cv::Mat cloud2d::epipolarFilter(std::pair<cloud2d, cloud2d>& clouds)
 
 void cloud2d::drawPoints(std::pair<cloud2d, cloud2d> &pair, cv::Mat& image1, cv::Mat& image2)
 {
+	cv::Mat m1(cv::Mat::zeros(image1.size(), CV_8UC3));
+	cv::Mat m2(cv::Mat::zeros(image2.size(), CV_8UC3));
+	cv::Mat m3(cv::Mat::zeros(image2.size(), CV_8UC3));
 	for (int i = 0; i < pair.first.points.size(); ++i)
 	{
 		auto c = cv::Scalar(rand() & 255, rand() & 255, rand() & 255);
-		cv::circle(image1, pair.first.points[i], 5, c, -1);
-		cv::circle(image2, pair.second.points[i], 5, c, -1);
+		cv::circle(m1, pair.first.points[i], 5, c, -1);
+		cv::circle(m3, pair.first.points[i], 5, c, -1);
+		cv::circle(m2, pair.second.points[i], 5, c, -1);
+		cv::circle(m3, pair.second.points[i], 5, c, -1);
+		cv::line(m3, pair.first.points[i], pair.second.points[i], c, 2);
 	}
 }
 
