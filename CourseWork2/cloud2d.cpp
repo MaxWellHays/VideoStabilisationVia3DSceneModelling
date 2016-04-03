@@ -91,6 +91,32 @@ void cloud2d::drawMatches(std::pair<cloud2d, cloud2d> &pair, cv::Mat& image1, cv
   }
 }
 
+cv::Mat cloud2d::drawMatches(const cloud2d& cloud1, const cloud2d& cloud2, bool drawLine)
+{
+  cv::Mat backgroud(cv::Mat::zeros(501, 750, CV_8UC3));
+  return drawMatches(cloud1, cloud2, backgroud, drawLine);
+}
+
+cv::Mat cloud2d::drawMatches(const cloud2d& cloud1, const cloud2d& cloud2, const cv::Mat& backgroud, bool drawLine)
+{
+  if (cloud1.points.size() != cloud2.points.size())
+  {
+    throw std::runtime_error("Different size of clouds");
+  }
+  cv::Mat result = backgroud.clone();
+  for (int i = 0; i < cloud1.points.size(); ++i)
+  {
+    auto c = cv::Scalar(rand() & 255, rand() & 255, rand() & 255);
+    cv::circle(result, cloud1.points[i], 5, c, -1);
+    cv::circle(result, cloud2.points[i], 5, c, -1);
+    if (drawLine)
+    {
+      cv::line(result, cloud1.points[i], cloud2.points[i], c, 2);
+    }
+  }
+  return result;
+}
+
 void cloud2d::drawPointsAndEpipolarLines(std::pair<cloud2d, cloud2d>& pair, cv::Mat fundamental, cv::Mat& image1, cv::Mat& image2)
 {
   std::vector<cv::Vec3f> lines1;

@@ -94,9 +94,9 @@ void experementFunction()
       cloud3d cloud3d = cvPba::RunBundleAdjustment(cloud2DPair, R, T);
 
 #ifdef DEBUG
-      //cloud2DPair.first.dump("pair1");
-      //cloud2DPair.second.dump("pair2");
-      //cloud3d.dump("bundleAdjustmentResult");
+      cloud2DPair.first.dump("pair1");
+      cloud2DPair.second.dump("pair2");
+      cloud3d.dump("bundleAdjustmentResult");
       enviroment::dumpMat(R, "R");
       enviroment::dumpMat(T, "T");
       cloud2d projectPoints = cloud3d.projectPoints(enviroment::defaultF, R, T);
@@ -111,17 +111,36 @@ void experementFunction()
 int main(int argc, char** argv)
 {
   //experementFunction();
-  cloud3d spacePoints("bundleAdjustmentResult");
   cloud2d points1("pair1");
   cloud2d points2("pair2");
   cv::Mat R(enviroment::loadMat("R"));
-  cv::Mat T(enviroment::loadMat("T"));
+  cv::Mat T1(enviroment::loadMat("T"));
 
+  cloud3d spacePoints1("bundleAdjustmentResult");
+  cloud3d spacePoints2(cvPba::RunBundleAdjustment(std::make_pair(points1, points2), R, T1));
+  spacePoints2.dump("bundleAdjustmentResultActual");
 
-  auto pointsImage1 = points1.drawPoints();
-  auto pointsImage2 = points2.drawPoints();
-  auto projectImage1 = spacePoints.projectPoints(enviroment::defaultF, R, T).drawPoints();
-  auto projectImage2 = spacePoints.projectPoints(enviroment::defaultF).drawPoints();
+  cv::Mat pointsImage1 = points1.drawPoints();
+  cv::Mat pointsImage2 = points2.drawPoints();
+
+  //1
+
+  cloud2d projectPoints1 = spacePoints2.projectPoints(enviroment::defaultF);
+  cloud2d projectPoints2 = spacePoints2.projectPoints(enviroment::defaultF, R, T1);
+
+  cv::Mat projectImage1 = projectPoints1.drawPoints();
+  cv::Mat projectImage2 = projectPoints2.drawPoints();
+  cv::Mat matches1 = cloud2d::drawMatches(points1, projectPoints1, true);
+  cv::Mat matches2 = cloud2d::drawMatches(points2, projectPoints2, true);
+  cv::Mat matches2dump = matches2.clone();
+
+  projectPoints1 = spacePoints1.projectPoints(enviroment::defaultF);
+  projectPoints2 = spacePoints1.projectPoints(enviroment::defaultF, R, T1);
+
+  projectImage1 = projectPoints1.drawPoints();
+  projectImage2 = projectPoints2.drawPoints();
+  matches1 = cloud2d::drawMatches(points1, projectPoints1, true);
+  matches2 = cloud2d::drawMatches(points2, projectPoints2, true);
 
   return 0;
 }

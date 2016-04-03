@@ -18,6 +18,8 @@ public:
   static cv::Mat epipolarFilter(std::pair<cloud2d, cloud2d>& clouds);
 
   static void drawMatches(std::pair<cloud2d, cloud2d> &pair, cv::Mat &image1, cv::Mat &image2);
+  static cv::Mat drawMatches(const cloud2d& cloud1, const cloud2d& cloud2, bool drawLine = false);
+  static cv::Mat drawMatches(const cloud2d& cloud1, const cloud2d& cloud2, const cv::Mat& backgroud, bool drawLine = false);
 
   static void drawPointsAndEpipolarLines(std::pair<cloud2d, cloud2d> &pair, cv::Mat fundamental, cv::Mat& image1, cv::Mat& image2);
 
