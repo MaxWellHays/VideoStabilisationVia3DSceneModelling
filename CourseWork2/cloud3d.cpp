@@ -1,6 +1,8 @@
 #include "cloud3d.h"
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <sstream>
 
 cloud3d::cloud3d()
 {
@@ -8,6 +10,23 @@ cloud3d::cloud3d()
 
 cloud3d::~cloud3d()
 {
+}
+
+cloud3d::cloud3d(const std::vector<cv::Point3d>& points)
+{
+  vertexes = std::vector<cv::Point3d>(points);
+}
+
+cloud3d::cloud3d(const std::string& nameForLoad) : cloud3d()
+{
+  std::ifstream stream;
+  stream.open("data\\cloud3d_" + nameForLoad + ".ply");
+  if (!stream.is_open())
+  {
+    throw std::runtime_error("Could not open file");
+  }
+  loadFromPLY(stream);
+  stream.close();
 }
 
 int cloud3d::addPoint(cv::Point3d point)
@@ -36,19 +55,31 @@ cloud2d cloud3d::projectPoints(double f, const cv::Mat &R, const cv::Mat &T) con
   return cloud2d(resultMat);
 }
 
-void cloud3d::dumpPLY(std::ostream& out)
+cloud2d cloud3d::projectPoints(double f) const
+{
+  cv::Mat R(cv::Mat::eye(3, 3, CV_64F));
+  cv::Mat T(cv::Mat::zeros(3, 1, CV_64F));
+  return projectPoints(f, R, T);
+}
+
+void cloud3d::dump(const std::string& name) const
+{
+  dumpPLY("data\\cloud3d_" + name + ".ply");
+}
+
+cloud3d cloud3d::load(const std::string& name)
+{
+  return cloud3d(name);
+}
+
+void cloud3d::dumpPLY(std::ostream& out) const
 {
   out << "ply" << std::endl;
   out << "format ascii 1.0" << std::endl;
-  out << "comment made by ViMouse software" << std::endl;
-  out << "comment This file is a saved stereo-reconstruction" << std::endl;
   out << "element vertex " << vertexes.size() << std::endl;
   out << "property float x" << std::endl;
   out << "property float y" << std::endl;
   out << "property float z" << std::endl;
-  out << "property uchar red" << std::endl;
-  out << "property uchar green" << std::endl;
-  out << "property uchar blue" << std::endl;
   out << "end_header" << std::endl;
 
   for (unsigned i = 0; i < vertexes.size(); i++)
@@ -56,15 +87,26 @@ void cloud3d::dumpPLY(std::ostream& out)
     out << vertexes[i].x << " "
       << vertexes[i].y << " "
       << vertexes[i].z << " ";
-    out << unsigned(128) << " "
-      << unsigned(128) << " "
-      << unsigned(128) << std::endl;
+    out << std::endl;
   }
-  //    SYNC_PRINT(("This 0x%X. Edges %d", this, edges.size()));
-
 }
 
-void cloud3d::dumpPLY(std::string filePath)
+void cloud3d::loadFromPLY(std::ifstream& in)
+{
+  std::string line;
+  for (size_t i = 0; i < 7; i++)
+  {
+    std::getline(in, line);
+  }
+
+  double x, y, z;
+  while (in >> x >> y >> z)
+  {
+    addPoint(cv::Point3d(x, y, z));
+  }
+}
+
+void cloud3d::dumpPLY(const std::string& filePath) const
 {
   std::ofstream stream;
   stream.open(filePath);

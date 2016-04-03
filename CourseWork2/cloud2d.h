@@ -7,7 +7,10 @@ class cloud2d
 public:
   cloud2d();
   explicit cloud2d(const cv::Mat& pointsMatrix);
+  explicit cloud2d(const std::string& nameForLoad);
   ~cloud2d();
+  void dump(const std::string& name) const;
+  void dump(std::ostream& out) const;
   std::vector<cv::Point2f> points;
 
   void addPoint(cv::Point2f point);

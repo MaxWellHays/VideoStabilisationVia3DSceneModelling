@@ -70,6 +70,7 @@
   <ItemGroup>
     <ClCompile Include="cloud2d.cpp" />
     <ClCompile Include="cloud3d.cpp" />
+    <ClCompile Include="enviroment.cpp" />
     <ClCompile Include="keypoints.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="cvPba.cpp" />
@@ -78,6 +79,7 @@
     <ClInclude Include="cloud2d.h" />
     <ClInclude Include="cloud3d.h" />
     <ClInclude Include="cvPba.h" />
+    <ClInclude Include="enviroment.h" />
     <ClInclude Include="keypoints.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

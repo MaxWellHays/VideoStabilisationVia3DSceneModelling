@@ -30,6 +30,9 @@
     <ClCompile Include="keypoints.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="enviroment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cvPba.h">
@@ -42,6 +45,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="keypoints.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="enviroment.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -6,6 +6,7 @@
 #include <regex>
 #include "cvPba.h"
 #include "keypoints.h"
+#include "enviroment.h"
 
 #define DEBUG
 
@@ -65,9 +66,7 @@ void extractExtrinsicParameters(cv::Mat fundamentalMat, double f, double u0, dou
   T = u.col(2);
 }
 
-
-
-int main(int argc, char** argv)
+void experementFunction()
 {
   auto folderPath("C:\\Users\\UX32VD\\Documents\\coursework\\timelapse1\\2\\");
   auto images(getImagesFromFolder(folderPath, std::regex(".+\\.((jpg)|(png))", std::regex_constants::icase)));
@@ -81,31 +80,48 @@ int main(int argc, char** argv)
       std::pair<cloud2d, cloud2d>& cloud2DPair = cloud2dPairs[i];
 
       cv::Mat fundamentalMat = cloud2d::epipolarFilter(cloud2DPair);
-      
-      #ifdef DEBUG
-      //cloud2d::drawMatches(cloud2DPair, images[i], images[i + 1]);
-      #endif
 
-      double defaultF = 900;
+#ifdef DEBUG
+      //cloud2d::drawMatches(cloud2DPair, images[i], images[i + 1]);
+#endif
 
       cv::Mat R, T;
-      extractExtrinsicParameters(fundamentalMat, defaultF,
+      extractExtrinsicParameters(fundamentalMat, enviroment::defaultF,
         images[0].size().width / 2.0,
         images[0].size().height / 2.0,
         T, R);
 
-      cv::Mat r1 = R.clone();
-      cv::Mat t1 = T.clone();
       cloud3d cloud3d = cvPba::RunBundleAdjustment(cloud2DPair, R, T);
 
-      #ifdef DEBUG
-      cloud3d.dumpPLY("C:\\Users\\UX32VD\\Documents\\coursework\\test.ply");
-      cloud2d projectPoints = cloud3d.projectPoints(defaultF, R, T);
+#ifdef DEBUG
+      //cloud2DPair.first.dump("pair1");
+      //cloud2DPair.second.dump("pair2");
+      //cloud3d.dump("bundleAdjustmentResult");
+      enviroment::dumpMat(R, "R");
+      enviroment::dumpMat(T, "T");
+      cloud2d projectPoints = cloud3d.projectPoints(enviroment::defaultF, R, T);
       auto projectPointsImage = projectPoints.drawPoints();
       auto instantPointsImage1 = cloud2DPair.first.drawPoints();
       auto instantPointsImage2 = cloud2DPair.second.drawPoints();
-      #endif
+#endif
     }
   }
+}
+
+int main(int argc, char** argv)
+{
+  //experementFunction();
+  cloud3d spacePoints("bundleAdjustmentResult");
+  cloud2d points1("pair1");
+  cloud2d points2("pair2");
+  cv::Mat R(enviroment::loadMat("R"));
+  cv::Mat T(enviroment::loadMat("T"));
+
+
+  auto pointsImage1 = points1.drawPoints();
+  auto pointsImage2 = points2.drawPoints();
+  auto projectImage1 = spacePoints.projectPoints(enviroment::defaultF, R, T).drawPoints();
+  auto projectImage2 = spacePoints.projectPoints(enviroment::defaultF).drawPoints();
+
   return 0;
 }

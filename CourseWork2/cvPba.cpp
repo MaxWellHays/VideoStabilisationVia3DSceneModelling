@@ -8,6 +8,22 @@ Point2D cvPba::ConvertCvPoint(const cv::Point2f &point)
 	return Point2D(point.x, point.y);
 }
 
+cv::Point3d cvPba::ConvertCvPoint(const Point3D &point)
+{
+  return cv::Point3f(point.xyz[0], point.xyz[1], point.xyz[2]);
+}
+
+vector<cv::Point3d> cvPba::ConvertCvPoint(const vector<Point3D> &points)
+{
+  vector<cv::Point3d> result;
+  result.reserve(points.size());
+  for (auto& point : points)
+  {
+    result.push_back(ConvertCvPoint(point));
+  }
+  return result;
+}
+
 vector<Point3D_<float>> cvPba::generateRough3dPoints(const vector<cv::Point2f>& points, int width, int height)
 {
 	vector<Point3D_<float>> result;
@@ -84,11 +100,5 @@ cloud3d cvPba::RunBundleAdjustment(const std::pair<cloud2d, cloud2d> &imagePoint
 		}
 		T.at<double>(i) = -camera_data[1].t[i];
 	}
-
-	cloud3d cloud;
-	for (auto& point : point_data)
-	{
-		cloud.addPoint(cv::Point3f(point.xyz[0], point.xyz[1], point.xyz[2]));
-	}
-  return cloud;
+  return cloud3d(ConvertCvPoint(point_data));
 }
