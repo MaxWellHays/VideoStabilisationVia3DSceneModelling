@@ -7,21 +7,20 @@
 #include "cvPba.h"
 #include "keypoints.h"
 
-using namespace std;
-using namespace cv;
+#define DEBUG
 
-vector<Mat> getImagesFromFolder(string folderPath, regex nameFilter)
+vector<cv::Mat> getImagesFromFolder(std::string folderPath, std::regex nameFilter)
 {
-  vector<Mat> images;
+  vector<cv::Mat> images;
   DIR *dir;
   struct dirent *ent;
   if ((dir = opendir(folderPath.c_str())) != nullptr) {
     while ((ent = readdir(dir)) != nullptr) {
       auto fileName(ent->d_name);
-      if (regex_match(fileName, nameFilter))
+      if (std::regex_match(fileName, nameFilter))
       {
-        auto patchToImageFile = folderPath + string(fileName);
-        auto image = imread(patchToImageFile);
+        auto patchToImageFile = folderPath + std::string(fileName);
+        auto image = cv::imread(patchToImageFile);
         images.push_back(image);
         printf("%s\n", patchToImageFile.c_str());
       }
@@ -34,13 +33,13 @@ vector<Mat> getImagesFromFolder(string folderPath, regex nameFilter)
   return images;
 }
 
-void showImages(const vector<Mat>& images)
+void showImages(const vector<cv::Mat>& images)
 {
   auto selectedImage(0);
-  imshow("Image", images[selectedImage]);
+  cv::imshow("Image", images[selectedImage]);
   for (;;)
   {
-    auto keyCode = waitKey();
+    auto keyCode = cv::waitKey();
     if (keyCode == 2424832 && selectedImage > 0) selectedImage--; //Left arrow
     else if (keyCode == 2555904 && selectedImage < images.size() - 1) selectedImage++; //Right arrow
     else if (keyCode == 27) break; //Esc
@@ -58,45 +57,54 @@ void extractExtrinsicParameters(cv::Mat fundamentalMat, double f, double u0, dou
 
   essentialMat = K.t()*fundamentalMat*K;
 
-  Mat w, u, vt;
-  SVD::compute(essentialMat, w, u, vt, DECOMP_SVD);
+  cv::Mat w, u, vt;
+  cv::SVD::compute(essentialMat, w, u, vt, cv::DECOMP_SVD);
   double wValues[9] = { 0.0, -1.0, 0.0, 1, 0.0, 0.0, 0.0, 0.0, 1.0 };
-  Mat W(3, 3, CV_64F, wValues);
+  cv::Mat W(3, 3, CV_64F, wValues);
   R = u*W*vt;
   T = u.col(2);
 }
 
+
+
 int main(int argc, char** argv)
 {
   auto folderPath("C:\\Users\\UX32VD\\Documents\\coursework\\timelapse1\\2\\");
-  auto images(getImagesFromFolder(folderPath, regex(".+\\.((jpg)|(png))", regex_constants::icase)));
+  auto images(getImagesFromFolder(folderPath, std::regex(".+\\.((jpg)|(png))", std::regex_constants::icase)));
   if (images.size())
   {
     auto keypoints(keypoints::createKeypoints(images));
     auto cloud2dPairs(keypoints::descriptorFilter(keypoints));
 
-    for (auto& cloud2DPair : cloud2dPairs)
+    for (int i = 0; i < cloud2dPairs.size(); i++)
     {
-      cv::Mat fundamentalMat = cloud2d::epipolarFilter(cloud2dPairs[0]);
+      std::pair<cloud2d, cloud2d>& cloud2DPair = cloud2dPairs[i];
 
+      cv::Mat fundamentalMat = cloud2d::epipolarFilter(cloud2DPair);
+      
       #ifdef DEBUG
-      cloud2d::drawPoints(cloud2dPairs[0], images[0], images[1]);
-      showImages(images);
+      //cloud2d::drawMatches(cloud2DPair, images[i], images[i + 1]);
       #endif
 
-      Mat R, T;
-      extractExtrinsicParameters(fundamentalMat, 900,
+      double defaultF = 900;
+
+      cv::Mat R, T;
+      extractExtrinsicParameters(fundamentalMat, defaultF,
         images[0].size().width / 2.0,
         images[0].size().height / 2.0,
         T, R);
 
-      cloud2dPairs[0].first.center(images[0].size());
-      cloud2dPairs[0].second.center(images[1].size());
+      cv::Mat r1 = R.clone();
+      cv::Mat t1 = T.clone();
+      cloud3d cloud3d = cvPba::RunBundleAdjustment(cloud2DPair, R, T);
 
-      Mat r1 = R.clone();
-      Mat t1 = T.clone();
-      cvPba pba;
-      pba.RunBundleAdjustment(cloud2dPairs[0], R, T);
+      #ifdef DEBUG
+      cloud3d.dumpPLY("C:\\Users\\UX32VD\\Documents\\coursework\\test.ply");
+      cloud2d projectPoints = cloud3d.projectPoints(defaultF, R, T);
+      auto projectPointsImage = projectPoints.drawPoints();
+      auto instantPointsImage1 = cloud2DPair.first.drawPoints();
+      auto instantPointsImage2 = cloud2DPair.second.drawPoints();
+      #endif
     }
   }
   return 0;

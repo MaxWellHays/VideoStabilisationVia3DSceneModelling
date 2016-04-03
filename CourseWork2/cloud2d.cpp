@@ -5,6 +5,12 @@ cloud2d::cloud2d()
 {
 }
 
+cloud2d::cloud2d(const cv::Mat& pointsMatrix)
+{
+  points = std::vector<cv::Point2f>(pointsMatrix.rows);
+  pointsMatrix.copyTo(points);
+}
+
 cloud2d::~cloud2d()
 {
 }
@@ -33,7 +39,7 @@ cv::Mat cloud2d::epipolarFilter(std::pair<cloud2d, cloud2d>& clouds)
 	return fundamentalMat;
 }
 
-void cloud2d::drawPoints(std::pair<cloud2d, cloud2d> &pair, cv::Mat& image1, cv::Mat& image2)
+void cloud2d::drawMatches(std::pair<cloud2d, cloud2d> &pair, cv::Mat& image1, cv::Mat& image2)
 {
 	cv::Mat m1(cv::Mat::zeros(image1.size(), CV_8UC3));
 	cv::Mat m2(cv::Mat::zeros(image2.size(), CV_8UC3));
@@ -67,15 +73,34 @@ void cloud2d::drawPointsAndEpipolarLines(std::pair<cloud2d, cloud2d>& pair, cv::
 	}
 }
 
-void cloud2d::shiftAll(cv::Point2f offset)
+cloud2d cloud2d::shiftAll(cv::Point2f offset) const
 {
-	for (auto& point : points)
+  cloud2d result(*this);
+	for (cv::Point2f& point : result.points)
 	{
 		point += offset;
 	}
+  return result;
 }
 
-void cloud2d::center(cv::Size imageSize)
+cloud2d cloud2d::center(cv::Size imageSize) const
 {
-	shiftAll(cv::Point2f(-imageSize.width / 2.0, -imageSize.height / 2.0));
+	return shiftAll(cv::Point2f(-imageSize.width / 2.0, -imageSize.height / 2.0));
+}
+
+cv::Mat cloud2d::drawPoints(const cv::Mat& backgroundImage) const
+{
+  cv::Mat resultImage = backgroundImage.clone();
+  for (const cv::Point2f& currentPoint : points)
+  {
+    auto color = cv::Scalar(rand() & 255, rand() & 255, rand() & 255);
+    cv::circle(resultImage, currentPoint, 5, color, -1);
+  }
+  return resultImage;
+}
+
+cv::Mat cloud2d::drawPoints() const
+{
+  cv::Mat background(cv::Mat::zeros(501, 750, CV_8UC3));
+  return drawPoints(background);
 }

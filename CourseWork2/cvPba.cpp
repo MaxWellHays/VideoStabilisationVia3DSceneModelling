@@ -3,20 +3,12 @@
 #include <fstream>
 #include "cloud3d.h"
 
-Point2D cvPba::ConvertCvPoint(cv::Point2f &point)
+Point2D cvPba::ConvertCvPoint(const cv::Point2f &point)
 {
 	return Point2D(point.x, point.y);
 }
 
-cvPba::cvPba()
-{
-}
-
-cvPba::~cvPba()
-{
-}
-
-vector<Point3D_<float>> cvPba::generateRough3dPoints(vector<cv::Point2f>& points, int width, int height)
+vector<Point3D_<float>> cvPba::generateRough3dPoints(const vector<cv::Point2f>& points, int width, int height)
 {
 	vector<Point3D_<float>> result;
 	result.reserve(points.size());
@@ -34,20 +26,23 @@ float cvPba::getLockedMask(bool lockFocal, bool lockPosition, bool lockRotation,
 	return lockFocal*LOCK_FOCAL + lockPosition*LOCK_POSITION + lockRotation*LOCK_ROTATION + lockDistortion*LOCK_DISTORTION;
 }
 
-void cvPba::RunBundleAdjustment(std::pair<cloud2d, cloud2d> &imagePoints, cv::Mat &R, cv::Mat &T)
+cloud3d cvPba::RunBundleAdjustment(const std::pair<cloud2d, cloud2d> &imagePoints, cv::Mat &R, cv::Mat &T)
 {
 	vector<CameraT>        camera_data;    //camera (input/ouput)
 	vector<Point3D>        point_data;     //3D point(iput/output)
 	vector<Point2D>        measurements;   //measurment/projection vector
 	vector<int>            camidx, ptidx;  //index of camera/point for each projection
 
-	for (int i = 0; i < imagePoints.first.points.size(); ++i)
+  auto firstCenteredCloud = imagePoints.first.center(cv::Size(750, 501));
+  auto secondCenteredCloud = imagePoints.second.center(cv::Size(750, 501));
+
+	for (int i = 0; i < firstCenteredCloud.points.size(); ++i)
 	{
-		measurements.push_back(ConvertCvPoint(imagePoints.first.points[i]));
+		measurements.push_back(ConvertCvPoint(firstCenteredCloud.points[i]));
 		camidx.push_back(0);
 		ptidx.push_back(i);
 		
-		measurements.push_back(ConvertCvPoint(imagePoints.second.points[i]));
+		measurements.push_back(ConvertCvPoint(secondCenteredCloud.points[i]));
 		camidx.push_back(1);
 		ptidx.push_back(i);
 	}
@@ -73,7 +68,7 @@ void cvPba::RunBundleAdjustment(std::pair<cloud2d, cloud2d> &imagePoints, cv::Ma
 		camera_data[0].t[i] = 0;
 		camera_data[1].t[i] = -T.at<double>(i);
 	}
-	point_data = generateRough3dPoints(imagePoints.first.points, 750, 501);
+	point_data = generateRough3dPoints(firstCenteredCloud.points, 750, 501);
 
 	pba.SetCameraData(camera_data.size(), camera_data.data());
 	pba.SetPointData(point_data.size(), &point_data[0]);
@@ -95,11 +90,5 @@ void cvPba::RunBundleAdjustment(std::pair<cloud2d, cloud2d> &imagePoints, cv::Ma
 	{
 		cloud.addPoint(cv::Point3f(point.xyz[0], point.xyz[1], point.xyz[2]));
 	}
-
-	std::ofstream stream;
-	stream.open("C:\\Users\\UX32VD\\Documents\\coursework\\test.ply");
-
-	cloud.dumpPLY(stream);
-
-	stream.close();
+  return cloud;
 }

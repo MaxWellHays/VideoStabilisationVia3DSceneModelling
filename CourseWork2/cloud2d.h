@@ -6,6 +6,7 @@ class cloud2d
 {
 public:
   cloud2d();
+  explicit cloud2d(const cv::Mat& pointsMatrix);
   ~cloud2d();
   std::vector<cv::Point2f> points;
 
@@ -13,12 +14,16 @@ public:
 
   static cv::Mat epipolarFilter(std::pair<cloud2d, cloud2d>& clouds);
 
-  static void drawPoints(std::pair<cloud2d, cloud2d> &pair, cv::Mat& image1, cv::Mat& image2);
+  static void drawMatches(std::pair<cloud2d, cloud2d> &pair, cv::Mat &image1, cv::Mat &image2);
 
   static void drawPointsAndEpipolarLines(std::pair<cloud2d, cloud2d> &pair, cv::Mat fundamental, cv::Mat& image1, cv::Mat& image2);
 
-  void shiftAll(cv::Point2f offset);
+  cloud2d shiftAll(cv::Point2f offset) const;
 
-  void center(cv::Size imageSize);
+  cloud2d center(cv::Size imageSize) const;
+
+  cv::Mat drawPoints(const cv::Mat& backgroundImage) const;
+
+  cv::Mat drawPoints() const;
 };
 
