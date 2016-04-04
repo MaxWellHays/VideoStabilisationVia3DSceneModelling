@@ -34,6 +34,12 @@ vector<cv::Mat> getImagesFromFolder(std::string folderPath, std::regex nameFilte
   return images;
 }
 
+vector<cv::Mat> LoadImages()
+{
+  auto folderPath("C:\\Users\\UX32VD\\Documents\\coursework\\timelapse1\\2\\");
+  return getImagesFromFolder(folderPath, std::regex(".+\\.((jpg)|(png))", std::regex_constants::icase));
+}
+
 void showImages(const vector<cv::Mat>& images)
 {
   auto selectedImage(0);
@@ -66,10 +72,18 @@ void extractExtrinsicParameters(cv::Mat fundamentalMat, double f, double u0, dou
   T = u.col(2);
 }
 
+void saveImage(const cv::Mat& image, const std::string& name)
+{
+  vector<int> compression_params;
+  compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+  compression_params.push_back(9);
+  cv::imwrite(name + ".png", image, compression_params);
+}
+
 void experementFunction()
 {
   auto folderPath("C:\\Users\\UX32VD\\Documents\\coursework\\timelapse1\\2\\");
-  auto images(getImagesFromFolder(folderPath, std::regex(".+\\.((jpg)|(png))", std::regex_constants::icase)));
+  vector<cv::Mat> images(getImagesFromFolder(folderPath, std::regex(".+\\.((jpg)|(png))", std::regex_constants::icase)));
   if (images.size())
   {
     auto keypoints(keypoints::createKeypoints(images));
@@ -114,33 +128,54 @@ int main(int argc, char** argv)
   cloud2d points1("pair1");
   cloud2d points2("pair2");
   cv::Mat R(enviroment::loadMat("R"));
-  cv::Mat T1(enviroment::loadMat("T"));
+  cv::Mat T(enviroment::loadMat("T"));
+  cloud3d spacePoints("bundleAdjustmentResult");
 
-  cloud3d spacePoints1("bundleAdjustmentResult");
-  cloud3d spacePoints2(cvPba::RunBundleAdjustment(std::make_pair(points1, points2), R, T1));
-  spacePoints2.dump("bundleAdjustmentResultActual");
+  cloud2d projectPoints1 = spacePoints.projectPoints(enviroment::defaultF);
+  cloud2d projectPoints2 = spacePoints.projectPoints(enviroment::defaultF, R, T);
 
-  cv::Mat pointsImage1 = points1.drawPoints();
-  cv::Mat pointsImage2 = points2.drawPoints();
+  cv::Mat m1(cv::Mat::zeros(501, 750, CV_8UC4));
+  cv::Mat m2(cv::Mat::zeros(501, 750, CV_8UC4));
+  cv::Mat m3(cv::Mat::zeros(501, 750, CV_8UC4));
 
-  //1
+  cv::Mat t1(cv::Mat::zeros(501, 750, CV_8UC4));
+  cv::Mat t2(cv::Mat::zeros(501, 750, CV_8UC4));
+  cv::Mat t3(cv::Mat::zeros(501, 750, CV_8UC4));
 
-  cloud2d projectPoints1 = spacePoints2.projectPoints(enviroment::defaultF);
-  cloud2d projectPoints2 = spacePoints2.projectPoints(enviroment::defaultF, R, T1);
+  auto black = cv::Scalar(0, 0, 0, 255);
+  for (size_t i = 0; i < points1.points.size(); i++)
+  {
+    auto color = cv::Scalar(rand() & 255, rand() & 255, rand() & 255, 255);
+    cv::circle(m1, points1.points[i], 6, black, -1);
+    cv::circle(m1, points1.points[i], 5, color, -1);
+    cv::circle(m2, projectPoints1.points[i], 6, black, -1);
+    cv::circle(m2, projectPoints1.points[i], 5, color, -1);
 
-  cv::Mat projectImage1 = projectPoints1.drawPoints();
-  cv::Mat projectImage2 = projectPoints2.drawPoints();
-  cv::Mat matches1 = cloud2d::drawMatches(points1, projectPoints1, true);
-  cv::Mat matches2 = cloud2d::drawMatches(points2, projectPoints2, true);
-  cv::Mat matches2dump = matches2.clone();
+    cv::line(m3, points1.points[i], projectPoints1.points[i], black, 3);
+    cv::circle(m3, points1.points[i], 6, black, -1);
+    cv::circle(m3, points1.points[i], 5, color, -1);
+    cv::circle(m3, projectPoints1.points[i], 6, black, -1);
+    cv::circle(m3, projectPoints1.points[i], 5, color, -1);
+    cv::line(m3, points1.points[i], projectPoints1.points[i], color, 2);
 
-  projectPoints1 = spacePoints1.projectPoints(enviroment::defaultF);
-  projectPoints2 = spacePoints1.projectPoints(enviroment::defaultF, R, T1);
+    cv::circle(t1, points2.points[i], 6, black, -1);
+    cv::circle(t1, points2.points[i], 5, color, -1);
+    cv::circle(t2, projectPoints2.points[i], 6, black, -1);
+    cv::circle(t2, projectPoints2.points[i], 5, color, -1);
 
-  projectImage1 = projectPoints1.drawPoints();
-  projectImage2 = projectPoints2.drawPoints();
-  matches1 = cloud2d::drawMatches(points1, projectPoints1, true);
-  matches2 = cloud2d::drawMatches(points2, projectPoints2, true);
+    cv::line(t3, points2.points[i], projectPoints2.points[i], black, 3);
+    cv::circle(t3, points2.points[i], 5, color, -1);
+    cv::circle(t3, projectPoints2.points[i], 5, color, -1);
+    cv::line(t3, points2.points[i], projectPoints2.points[i], color, 2);
+    cv::line(t3, points2.points[i], projectPoints2.points[i], color, 2);
+  }
+
+  saveImage(m1, "1");
+  saveImage(m2, "2");
+  saveImage(m3, "3");
+  saveImage(t1, "4");
+  saveImage(t2, "5");
+  saveImage(t3, "6");
 
   return 0;
 }
