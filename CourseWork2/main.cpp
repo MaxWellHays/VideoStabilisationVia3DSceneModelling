@@ -122,6 +122,17 @@ void experementFunction()
   }
 }
 
+std::vector<cv::Mat> generateIntermediateFrames(const cv::Mat& startFrame, const cv::Mat& finishFrame, int frameCount)
+{
+  int size = max(startFrame.cols, startFrame.rows);
+  std::vector<cv::Mat> result(frameCount);
+  for (size_t i = 0; i < frameCount; i++)
+  {
+    result[i] = (startFrame * (1 - i * 1.0 / frameCount)) + finishFrame * (i * 1.0 / frameCount);
+  }
+  return result;
+}
+
 int main(int argc, char** argv)
 {
   //experementFunction();
@@ -134,48 +145,31 @@ int main(int argc, char** argv)
   cloud2d projectPoints1 = spacePoints.projectPoints(enviroment::defaultF);
   cloud2d projectPoints2 = spacePoints.projectPoints(enviroment::defaultF, R, T);
 
-  cv::Mat m1(cv::Mat::zeros(501, 750, CV_8UC4));
-  cv::Mat m2(cv::Mat::zeros(501, 750, CV_8UC4));
-  cv::Mat m3(cv::Mat::zeros(501, 750, CV_8UC4));
+  int frameCount = 10;
+  std::vector<cv::Mat> rotations(generateIntermediateFrames(cv::Mat::eye(3, 3, CV_64F), R, frameCount));
+  std::vector<cv::Mat> transformations(generateIntermediateFrames(cv::Mat::zeros(3, 1, CV_64F), T, frameCount));
 
-  cv::Mat t1(cv::Mat::zeros(501, 750, CV_8UC4));
-  cv::Mat t2(cv::Mat::zeros(501, 750, CV_8UC4));
-  cv::Mat t3(cv::Mat::zeros(501, 750, CV_8UC4));
-
-  auto black = cv::Scalar(0, 0, 0, 255);
-  for (size_t i = 0; i < points1.points.size(); i++)
+  std::vector<cv::Scalar> colors(spacePoints.vertexes.size());
+  for (size_t i = 0; i < colors.size(); i++)
   {
-    auto color = cv::Scalar(rand() & 255, rand() & 255, rand() & 255, 255);
-    cv::circle(m1, points1.points[i], 6, black, -1);
-    cv::circle(m1, points1.points[i], 5, color, -1);
-    cv::circle(m2, projectPoints1.points[i], 6, black, -1);
-    cv::circle(m2, projectPoints1.points[i], 5, color, -1);
-
-    cv::line(m3, points1.points[i], projectPoints1.points[i], black, 3);
-    cv::circle(m3, points1.points[i], 6, black, -1);
-    cv::circle(m3, points1.points[i], 5, color, -1);
-    cv::circle(m3, projectPoints1.points[i], 6, black, -1);
-    cv::circle(m3, projectPoints1.points[i], 5, color, -1);
-    cv::line(m3, points1.points[i], projectPoints1.points[i], color, 2);
-
-    cv::circle(t1, points2.points[i], 6, black, -1);
-    cv::circle(t1, points2.points[i], 5, color, -1);
-    cv::circle(t2, projectPoints2.points[i], 6, black, -1);
-    cv::circle(t2, projectPoints2.points[i], 5, color, -1);
-
-    cv::line(t3, points2.points[i], projectPoints2.points[i], black, 3);
-    cv::circle(t3, points2.points[i], 5, color, -1);
-    cv::circle(t3, projectPoints2.points[i], 5, color, -1);
-    cv::line(t3, points2.points[i], projectPoints2.points[i], color, 2);
-    cv::line(t3, points2.points[i], projectPoints2.points[i], color, 2);
+    colors[i] = cv::Scalar(rand() & 255, rand() & 255, rand() & 255);
   }
-
-  saveImage(m1, "1");
-  saveImage(m2, "2");
-  saveImage(m3, "3");
-  saveImage(t1, "4");
-  saveImage(t2, "5");
-  saveImage(t3, "6");
+  cv::Scalar blackColor(0, 0, 0);
+  std::vector<cv::Mat> images;
+  images.reserve(frameCount);
+  for (size_t i = 0; i < frameCount; i++)
+  {
+    cv::Mat resultImage(cv::Mat::zeros(501, 750, CV_8UC3));
+    cloud2d points(spacePoints.projectPoints(enviroment::defaultF, rotations[i], transformations[i]));
+    for (size_t j = 0; j < points.points.size(); j++)
+    {
+      cv::circle(resultImage, points.points[j], 6, blackColor, -1);
+      cv::circle(resultImage, points.points[j], 5, colors[j], -1);
+    }
+    images.push_back(resultImage);
+    saveImage(resultImage, std::to_string(i));
+  }
+  showImages(images);
 
   return 0;
 }
