@@ -15,13 +15,14 @@ public:
 
   void addPoint(cv::Point2f point);
 
-  static cv::Mat epipolarFilter(std::pair<cloud2d, cloud2d>& clouds);
+  static cv::Mat epipolarFilter(std::pair<cloud2d, cloud2d>& clouds, int method = cv::FM_RANSAC);
+  static void filterWithFundamentalMatrix(std::pair<cloud2d, cloud2d>& clouds, const cv::Mat& fundamentalMat);
 
-  static void drawMatches(std::pair<cloud2d, cloud2d> &pair, cv::Mat &image1, cv::Mat &image2);
+  static void drawMatches(std::pair<cloud2d, cloud2d> &pair, const cv::Mat &image1, const cv::Mat &image2);
   static cv::Mat drawMatches(const cloud2d& cloud1, const cloud2d& cloud2, bool drawLine = false);
   static cv::Mat drawMatches(const cloud2d& cloud1, const cloud2d& cloud2, const cv::Mat& backgroud, bool drawLine = false);
 
-  static void drawPointsAndEpipolarLines(std::pair<cloud2d, cloud2d> &pair, cv::Mat fundamental, cv::Mat& image1, cv::Mat& image2);
+  static void drawPointsAndEpipolarLines(std::pair<cloud2d, cloud2d> &pair, const cv::Mat& fundamental, const cv::Mat& image1, const cv::Mat& image2);
 
   cloud2d shiftAll(cv::Point2f offset) const;
 

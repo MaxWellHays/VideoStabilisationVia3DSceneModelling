@@ -4,6 +4,8 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include "enviroment.h"
+#include <math.h>
 
 cloud2d::cloud2d()
 {
@@ -56,38 +58,101 @@ void cloud2d::addPoint(cv::Point2f point)
   points.push_back(point);
 }
 
-cv::Mat cloud2d::epipolarFilter(std::pair<cloud2d, cloud2d>& clouds)
+cv::Mat cloud2d::epipolarFilter(std::pair<cloud2d, cloud2d>& clouds, int method)
 {
   cv::Mat mask;
-  auto fundamentalMat = findFundamentalMat(cv::Mat(clouds.first.points), cv::Mat(clouds.second.points), mask, cv::FM_RANSAC);
+  cv::Mat pointsMat1(clouds.first.points), pointsMat2(clouds.second.points);
+  auto fundamentalMat = findFundamentalMat(pointsMat1, pointsMat2, mask, method);
 
-  std::vector<cv::Point2f> filteredPoints1, filteredPoints2;
-  for (int i = 0; i < mask.rows; ++i)
+  if (method == cv::FM_RANSAC || method == cv::FM_LMEDS)
   {
-    if (mask.at<UINT8>(i))
+    std::vector<cv::Point2f> filteredPoints1, filteredPoints2;
+    for (int i = 0; i < mask.rows; ++i)
     {
-      filteredPoints1.push_back(clouds.first.points[i]);
-      filteredPoints2.push_back(clouds.second.points[i]);
+      if (mask.at<UINT8>(i))
+      {
+        filteredPoints1.push_back(clouds.first.points[i]);
+        filteredPoints2.push_back(clouds.second.points[i]);
+      }
     }
+    clouds.first.points = filteredPoints1;
+    clouds.second.points = filteredPoints2;
   }
-  clouds.first.points = filteredPoints1;
-  clouds.second.points = filteredPoints2;
+  else
+  {
+    cloud2d::filterWithFundamentalMatrix(clouds, fundamentalMat);
+  }
   return fundamentalMat;
 }
 
-void cloud2d::drawMatches(std::pair<cloud2d, cloud2d> &pair, cv::Mat& image1, cv::Mat& image2)
+void cloud2d::filterWithFundamentalMatrix(std::pair<cloud2d, cloud2d>& clouds, const cv::Mat& fundamentalMat)
 {
-  cv::Mat m1(cv::Mat::zeros(image1.size(), CV_8UC3));
-  cv::Mat m2(cv::Mat::zeros(image2.size(), CV_8UC3));
+  std::vector<cv::Vec3f> lines1;
+  std::vector<cv::Vec3f> lines2;
+  cv::Mat pointsMat1(clouds.first.points), pointsMat2(clouds.second.points);
+  computeCorrespondEpilines(pointsMat1, 1, fundamentalMat, lines1);
+  computeCorrespondEpilines(pointsMat2, 2, fundamentalMat, lines2);
+
+  /*enviroment::dumpMat(pointsMat1, "TestPoints1");
+  enviroment::dumpMat(pointsMat2, "TestPoints2");
+  cv::Mat linesMat1(lines1), linesMat2(lines2);
+  enviroment::dumpMat(linesMat1, "TestLines1");
+  enviroment::dumpMat(linesMat2, "TestLines2");
+  enviroment::dumpMat(fundamentalMat, "TestFundmentalMatrix");*/
+
+  std::vector<cv::Point2f> newPoints1;
+  std::vector<cv::Point2f> newPoints2;
+
+  int count1 = 0;
+  int count5 = 0;
+  int count10 = 0;
+  for (size_t i = 0; i < lines1.size(); i++)
+  {
+    double distance1 = enviroment::distance(lines1[i], clouds.second.points[i]);
+    double distance2 = enviroment::distance(lines2[i], clouds.first.points[i]);
+    double maxDistance = MAX(distance1, distance2);
+    if (maxDistance<10)
+    {
+      count10++;
+      if (maxDistance<5)
+      {
+        newPoints1.push_back(clouds.first.points[i]);
+        newPoints2.push_back(clouds.second.points[i]);
+        count5++;
+        if (maxDistance<1)
+        {
+          count1++;
+        }
+      }
+    }
+  }
+  clouds.first.points = newPoints1;
+  clouds.second.points = newPoints2;
+}
+
+void cloud2d::drawMatches(std::pair<cloud2d, cloud2d> &pair, const cv::Mat& image1, const cv::Mat& image2)
+{
+  cv::Mat m1(image1.clone());
+  cv::Mat m2(image2.clone());
+  //cv::Mat m1(cv::Mat::zeros(image2.size(), CV_8UC3));
+  //cv::Mat m2(cv::Mat::zeros(image2.size(), CV_8UC3));
   cv::Mat m3(cv::Mat::zeros(image2.size(), CV_8UC3));
   for (int i = 0; i < pair.first.points.size(); ++i)
   {
     auto c = cv::Scalar(rand() & 255, rand() & 255, rand() & 255);
+    cv::circle(m1, pair.first.points[i], 6, enviroment::blackColor, -1);
+    cv::circle(m2, pair.second.points[i], 6, enviroment::blackColor, -1);
+
     cv::circle(m1, pair.first.points[i], 5, c, -1);
-    cv::circle(m3, pair.first.points[i], 5, c, -1);
     cv::circle(m2, pair.second.points[i], 5, c, -1);
-    cv::circle(m3, pair.second.points[i], 5, c, -1);
+
+    cv::line(m3, pair.first.points[i], pair.second.points[i], enviroment::blackColor, 3);
     cv::line(m3, pair.first.points[i], pair.second.points[i], c, 2);
+
+    cv::circle(m3, pair.first.points[i], 6, enviroment::blackColor, -1);
+    cv::circle(m3, pair.second.points[i], 6, enviroment::blackColor, -1);
+    cv::circle(m3, pair.first.points[i], 5, c, -1);
+    cv::circle(m3, pair.second.points[i], 5, c, -1);
   }
 }
 
@@ -117,21 +182,26 @@ cv::Mat cloud2d::drawMatches(const cloud2d& cloud1, const cloud2d& cloud2, const
   return result;
 }
 
-void cloud2d::drawPointsAndEpipolarLines(std::pair<cloud2d, cloud2d>& pair, cv::Mat fundamental, cv::Mat& image1, cv::Mat& image2)
+void cloud2d::drawPointsAndEpipolarLines(std::pair<cloud2d, cloud2d>& pair, const cv::Mat& fundamental, const cv::Mat& image1, const cv::Mat& image2)
 {
   std::vector<cv::Vec3f> lines1;
   std::vector<cv::Vec3f> lines2;
   computeCorrespondEpilines(cv::Mat(pair.first.points), 2, fundamental, lines1);
   computeCorrespondEpilines(cv::Mat(pair.second.points), 1, fundamental, lines2);
-  for (int i = 0; i < pair.first.points.size(); ++i)
+  cv::Mat m1(image1.clone()), m2(image2.clone());
+  for (int i = 0; i < pair.first.points.size(); i++)
   {
     auto c = cv::Scalar(rand() & 255, rand() & 255, rand() & 255);
     cv::Vec3f *it = &lines1[i];
-    cv::line(image1, cv::Point(0, -(*it)[2] / (*it)[1]), cv::Point(image1.cols, -((*it)[2] + (*it)[0] * image2.cols) / (*it)[1]), c);
-    cv::circle(image1, pair.first.points[i], 5, c, -1);
+    double dist1 = enviroment::distance(lines1[i], pair.first.points[i]);
+    cv::line(m1, cv::Point(0, -(*it)[2] / (*it)[1]), cv::Point(image1.cols, -((*it)[2] + (*it)[0] * image2.cols) / (*it)[1]), c);
+    cv::circle(m1, pair.first.points[i], 6, enviroment::blackColor, -1);
+    cv::circle(m1, pair.first.points[i], 5, c, -1);
     it = &lines2[i];
-    cv::line(image2, cv::Point(0, -(*it)[2] / (*it)[1]), cv::Point(image1.cols, -((*it)[2] + (*it)[0] * image2.cols) / (*it)[1]), c);
-    cv::circle(image2, pair.second.points[i], 5, c, -1);
+    double dist2 = enviroment::distance(lines2[i], pair.first.points[i]);
+    cv::line(m2, cv::Point(0, -(*it)[2] / (*it)[1]), cv::Point(image1.cols, -((*it)[2] + (*it)[0] * image2.cols) / (*it)[1]), c);
+    cv::circle(m2, pair.second.points[i], 6, enviroment::blackColor, -1);
+    cv::circle(m2, pair.second.points[i], 5, c, -1);
   }
 }
 
@@ -156,6 +226,7 @@ cv::Mat cloud2d::drawPoints(const cv::Mat& backgroundImage) const
   for (const cv::Point2f& currentPoint : points)
   {
     auto color = cv::Scalar(rand() & 255, rand() & 255, rand() & 255);
+    cv::circle(resultImage, currentPoint, 6, enviroment::blackColor, -1);
     cv::circle(resultImage, currentPoint, 5, color, -1);
   }
   return resultImage;

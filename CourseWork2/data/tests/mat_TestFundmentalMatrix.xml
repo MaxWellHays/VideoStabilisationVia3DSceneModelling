@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<opencv_storage>
+<TestFundmentalMatrix type_id="opencv-matrix">
+  <rows>3</rows>
+  <cols>3</cols>
+  <dt>d</dt>
+  <data>
+    1.3011285779707035e-006 8.6118921739924032e-006
+    -2.8962764356242994e-003 -2.4051678034274502e-006
+    2.4937962020949340e-007 3.9494776382824909e-003
+    -2.8147868750773498e-004 -6.1624919457849460e-003 1.</data></TestFundmentalMatrix>
+</opencv_storage>

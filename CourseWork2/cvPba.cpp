@@ -82,7 +82,7 @@ cloud3d cvPba::RunBundleAdjustment(const std::pair<cloud2d, cloud2d> &imagePoint
 		}
 		camera_data[0].m[i][i] = 1;
 		camera_data[0].t[i] = 0;
-		camera_data[1].t[i] = T.at<double>(i);
+		camera_data[1].t[i] = - T.at<double>(i);
 	}
 	point_data = generateRough3dPoints(firstCenteredCloud.points, 750, 501);
 
@@ -98,7 +98,8 @@ cloud3d cvPba::RunBundleAdjustment(const std::pair<cloud2d, cloud2d> &imagePoint
 		{
 			R.at<double>(i, j) = camera_data[1].m[i][j];
 		}
-		T.at<double>(i) = camera_data[1].t[i];
+		T.at<double>(i) = - camera_data[1].t[i];
 	}
+  R = -R;
   return cloud3d(ConvertCvPoint(point_data));
 }
