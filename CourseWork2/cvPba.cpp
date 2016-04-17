@@ -3,17 +3,17 @@
 #include <fstream>
 #include "cloud3d.h"
 
-Point2D cvPba::ConvertCvPoint(const cv::Point2f &point)
+Point2D cw::cvPba::ConvertCvPoint(const cv::Point2f &point)
 {
 	return Point2D(point.x, point.y);
 }
 
-cv::Point3d cvPba::ConvertCvPoint(const Point3D &point)
+cv::Point3d cw::cvPba::ConvertCvPoint(const Point3D &point)
 {
   return cv::Point3f(point.xyz[0], point.xyz[1], point.xyz[2]);
 }
 
-vector<cv::Point3d> cvPba::ConvertCvPoint(const vector<Point3D> &points)
+vector<cv::Point3d> cw::cvPba::ConvertCvPoint(const vector<Point3D> &points)
 {
   vector<cv::Point3d> result;
   result.reserve(points.size());
@@ -24,7 +24,7 @@ vector<cv::Point3d> cvPba::ConvertCvPoint(const vector<Point3D> &points)
   return result;
 }
 
-vector<Point3D_<float>> cvPba::generateRough3dPoints(const vector<cv::Point2f>& points, int width, int height)
+vector<Point3D_<float>> cw::cvPba::generateRough3dPoints(const vector<cv::Point2f>& points, int width, int height)
 {
 	vector<Point3D_<float>> result;
 	result.reserve(points.size());
@@ -37,12 +37,12 @@ vector<Point3D_<float>> cvPba::generateRough3dPoints(const vector<cv::Point2f>& 
 	return result;
 }
 
-float cvPba::getLockedMask(bool lockFocal, bool lockPosition, bool lockRotation, bool lockDistortion)
+float cw::cvPba::getLockedMask(bool lockFocal, bool lockPosition, bool lockRotation, bool lockDistortion)
 {
 	return lockFocal*LOCK_FOCAL + lockPosition*LOCK_POSITION + lockRotation*LOCK_ROTATION + lockDistortion*LOCK_DISTORTION;
 }
 
-cloud3d cvPba::RunBundleAdjustment(const std::pair<cloud2d, cloud2d> &imagePoints, cv::Mat &R, cv::Mat &T)
+cw::cloud3d cw::cvPba::RunBundleAdjustment(const std::pair<cloud2d, cloud2d> &imagePoints, cv::Mat &R, cv::Mat &T)
 {
 	vector<CameraT>        camera_data;    //camera (input/ouput)
 	vector<Point3D>        point_data;     //3D point(iput/output)

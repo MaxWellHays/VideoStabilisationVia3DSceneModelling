@@ -86,44 +86,38 @@ void experementFunction()
   vector<cv::Mat> images(getImagesFromFolder(folderPath, std::regex(".+\\.((jpg)|(png))", std::regex_constants::icase)));
   if (images.size())
   {
-    std::vector<keypoints> keypointsList(keypoints::createKeypoints(images));
+    std::vector<cw::keypoints> keypointsList(cw::keypoints::createKeypoints(images));
 
 #ifdef DEBUG
-    std::vector<cv::Mat> keypointsImages(keypoints::drawKeypoints(keypointsList, true));
+    std::vector<cv::Mat> keypointsImages(cw::keypoints::drawKeypoints(keypointsList, true));
 #endif
 
-    std::vector<std::pair<cloud2d, cloud2d>> cloud2dPairs(keypoints::descriptorFilter(keypointsList));
-
-    for (int i = 0; i < cloud2dPairs.size(); i++)
+    for (int i = 0; i < keypointsList.size() - 1; i++)
     {
-      std::pair<cloud2d, cloud2d>& cloud2DPair = cloud2dPairs[i];
+      cv::Mat fundamentalMat;
+      std::pair<cw::keypoints, cw::keypoints> currentKeypointsPair(std::make_pair(keypointsList[i], keypointsList[i + 1]));
+      std::pair<cw::cloud2d, cw::cloud2d>& cloud2DPair = cw::keypoints::smartFilter(currentKeypointsPair, fundamentalMat);
 
 #ifdef DEBUG
-      cloud2d::drawMatches(cloud2DPair, images[i], images[i + 1]);
-#endif
-
-      cv::Mat fundamentalMat = cloud2d::epipolarFilter(cloud2DPair, cv::FM_RANSAC);
-
-#ifdef DEBUG
-      cloud2d::drawMatches(cloud2DPair, images[i], images[i + 1]);
-      cloud2d::drawPointsAndEpipolarLines(cloud2DPair, fundamentalMat, images[i], images[i + 1]);
+      cw::cloud2d::drawMatches(cloud2DPair, images[i], images[i + 1]);
+      cw::cloud2d::drawPointsAndEpipolarLines(cloud2DPair, fundamentalMat, images[i], images[i + 1]);
 #endif
 
       cv::Mat R, T;
-      extractExtrinsicParameters(fundamentalMat, enviroment::defaultF,
+      extractExtrinsicParameters(fundamentalMat, cw::enviroment::defaultF,
         images[0].size().width / 2.0,
         images[0].size().height / 2.0,
         T, R);
 
-      cloud3d cloud3d = cvPba::RunBundleAdjustment(cloud2DPair, R, T);
+      cw::cloud3d cloud3d = cw::cvPba::RunBundleAdjustment(cloud2DPair, R, T);
 
 #ifdef DEBUG
       cloud2DPair.first.dump("pair1");
       cloud2DPair.second.dump("pair2");
       cloud3d.dump("bundleAdjustmentResult");
-      enviroment::dumpMat(R, "R");
-      enviroment::dumpMat(T, "T");
-      cloud2d projectPoints = cloud3d.projectPoints(enviroment::defaultF, R, T);
+      cw::enviroment::dumpMat(R, "R");
+      cw::enviroment::dumpMat(T, "T");
+      cw::cloud2d projectPoints = cloud3d.projectPoints(cw::enviroment::defaultF, R, T);
       auto projectPointsImage = projectPoints.drawPoints();
       auto instantPointsImage1 = cloud2DPair.first.drawPoints();
       auto instantPointsImage2 = cloud2DPair.second.drawPoints();
@@ -168,17 +162,17 @@ int main(int argc, char** argv)
   experementFunction();
   return 0;
 
-  cloud2d points1("pair1");
-  cloud2d points2("pair2");
-  cv::Mat R(enviroment::loadMat("R"));
-  cv::Mat T(enviroment::loadMat("T"));
-  cloud3d spacePoints("bundleAdjustmentResult");
+  cw::cloud2d points1("pair1");
+  cw::cloud2d points2("pair2");
+  cv::Mat R(cw::enviroment::loadMat("R"));
+  cv::Mat T(cw::enviroment::loadMat("T"));
+  cw::cloud3d spacePoints("bundleAdjustmentResult");
 
   cv::Mat t100 = T * 100;
   cv::Mat EulerAngles(getEulerAngles(R));
 
-  cloud2d projectPoints1 = spacePoints.projectPoints(enviroment::defaultF);
-  cloud2d projectPoints2 = spacePoints.projectPoints(enviroment::defaultF, -R, -T);
+  cw::cloud2d projectPoints1 = spacePoints.projectPoints(cw::enviroment::defaultF);
+  cw::cloud2d projectPoints2 = spacePoints.projectPoints(cw::enviroment::defaultF, -R, -T);
 
   cv::Mat m1(cv::Mat::zeros(501, 750, CV_8UC4));
   cv::Mat m2(cv::Mat::zeros(501, 750, CV_8UC4));

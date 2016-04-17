@@ -4,20 +4,20 @@
 #include <string>
 #include <sstream>
 
-cloud3d::cloud3d()
+cw::cloud3d::cloud3d()
 {
 }
 
-cloud3d::~cloud3d()
+cw::cloud3d::~cloud3d()
 {
 }
 
-cloud3d::cloud3d(const std::vector<cv::Point3d>& points)
+cw::cloud3d::cloud3d(const std::vector<cv::Point3d>& points)
 {
   vertexes = std::vector<cv::Point3d>(points);
 }
 
-cloud3d::cloud3d(const std::string& nameForLoad) : cloud3d()
+cw::cloud3d::cloud3d(const std::string& nameForLoad) : cloud3d()
 {
   std::ifstream stream;
   stream.open("data\\cloud3d_" + nameForLoad + ".ply");
@@ -29,13 +29,13 @@ cloud3d::cloud3d(const std::string& nameForLoad) : cloud3d()
   stream.close();
 }
 
-int cloud3d::addPoint(cv::Point3d point)
+int cw::cloud3d::addPoint(cv::Point3d point)
 {
   vertexes.push_back(point);
   return vertexes.size() - 1;
 }
 
-cloud2d cloud3d::projectPoints(double f, const cv::Mat &R, const cv::Mat &T) const
+cw::cloud2d cw::cloud3d::projectPoints(double f, const cv::Mat &R, const cv::Mat &T) const
 {
   cv::Mat A(cv::Mat::zeros(3, 3, CV_64F));
 
@@ -55,24 +55,24 @@ cloud2d cloud3d::projectPoints(double f, const cv::Mat &R, const cv::Mat &T) con
   return cloud2d(resultMat);
 }
 
-cloud2d cloud3d::projectPoints(double f) const
+cw::cloud2d cw::cloud3d::projectPoints(double f) const
 {
   cv::Mat R(cv::Mat::eye(3, 3, CV_64F));
   cv::Mat T(cv::Mat::zeros(3, 1, CV_64F));
   return projectPoints(f, R, T);
 }
 
-void cloud3d::dump(const std::string& name) const
+void cw::cloud3d::dump(const std::string& name) const
 {
   dumpPLY("data\\cloud3d_" + name + ".ply");
 }
 
-cloud3d cloud3d::load(const std::string& name)
+cw::cloud3d cw::cloud3d::load(const std::string& name)
 {
   return cloud3d(name);
 }
 
-void cloud3d::dumpPLY(std::ostream& out) const
+void cw::cloud3d::dumpPLY(std::ostream& out) const
 {
   out << "ply" << std::endl;
   out << "format ascii 1.0" << std::endl;
@@ -91,7 +91,7 @@ void cloud3d::dumpPLY(std::ostream& out) const
   }
 }
 
-void cloud3d::loadFromPLY(std::ifstream& in)
+void cw::cloud3d::loadFromPLY(std::ifstream& in)
 {
   std::string line;
   for (size_t i = 0; i < 7; i++)
@@ -106,7 +106,7 @@ void cloud3d::loadFromPLY(std::ifstream& in)
   }
 }
 
-void cloud3d::dumpPLY(const std::string& filePath) const
+void cw::cloud3d::dumpPLY(const std::string& filePath) const
 {
   std::ofstream stream;
   stream.open(filePath);
