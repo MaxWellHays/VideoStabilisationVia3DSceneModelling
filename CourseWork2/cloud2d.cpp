@@ -81,12 +81,9 @@ cv::Mat cw::cloud2d::epipolarFilter(std::pair<cw::cloud2d, cw::cloud2d>& clouds,
   return fundamentalMat;
 }
 
-std::pair<cw::cloud2d, cw::cloud2d> cw::cloud2d::filterWithFundamentalMatrix(const std::pair<const cloud2d&, const cloud2d&>& clouds, const cv::Mat& fundamentalMat)
+std::vector<double> cw::cloud2d::epipolarRestrictionValues(const std::pair<const cloud2d&, const cloud2d&>& clouds, const cv::Mat& fundamentalMat)
 {
-  std::pair<cw::cloud2d, cw::cloud2d> result;
-
   std::vector<double> distances;
-
   cv::Mat hPoints1, hPoints2;
   cv::convertPointsToHomogeneous(clouds.first.points, hPoints1);
   cv::convertPointsToHomogeneous(clouds.second.points, hPoints2);
@@ -102,7 +99,14 @@ std::pair<cw::cloud2d, cw::cloud2d> cw::cloud2d::filterWithFundamentalMatrix(con
     cv::Mat r = row * fundamentalMat * col;
     distances.push_back(abs(r.at<double>(0, 0)));
   }
+  return distances;
+}
 
+std::pair<cw::cloud2d, cw::cloud2d> cw::cloud2d::filterWithFundamentalMatrix(const std::pair<const cloud2d&, const cloud2d&>& clouds, const cv::Mat& fundamentalMat)
+{
+  std::pair<cw::cloud2d, cw::cloud2d> result;
+
+  std::vector<double> distances(epipolarRestrictionValues(clouds, fundamentalMat));
   std::vector<double> distancesCopy(distances.begin(), distances.end());
 
   std::sort(distancesCopy.begin(), distancesCopy.end());
@@ -122,6 +126,7 @@ std::pair<cw::cloud2d, cw::cloud2d> cw::cloud2d::filterWithFundamentalMatrix(con
 
 void cw::cloud2d::drawMatches(std::pair<cw::cloud2d, cw::cloud2d> &pair, const cv::Mat& image1, const cv::Mat& image2)
 {
+  srand(enviroment::randomSeed);
   cv::Mat m1(image1.clone());
   cv::Mat m2(image2.clone());
   //cv::Mat m1(cv::Mat::zeros(image2.size(), CV_8UC3));
@@ -154,6 +159,7 @@ cv::Mat cw::cloud2d::drawMatches(const cw::cloud2d& cloud1, const cw::cloud2d& c
 
 cv::Mat cw::cloud2d::drawMatches(const cw::cloud2d& cloud1, const cw::cloud2d& cloud2, const cv::Mat& backgroud, bool drawLine)
 {
+  srand(enviroment::randomSeed);
   if (cloud1.points.size() != cloud2.points.size())
   {
     throw std::runtime_error("Different size of clouds");
@@ -174,6 +180,7 @@ cv::Mat cw::cloud2d::drawMatches(const cw::cloud2d& cloud1, const cw::cloud2d& c
 
 void cw::cloud2d::drawPointsAndEpipolarLines(std::pair<cw::cloud2d, cw::cloud2d>& pair, const cv::Mat& fundamental, const cv::Mat& image1, const cv::Mat& image2)
 {
+  srand(enviroment::randomSeed);
   std::vector<cv::Vec3f> lines1;
   std::vector<cv::Vec3f> lines2;
   computeCorrespondEpilines(cv::Mat(pair.first.points), 2, fundamental, lines1);
@@ -226,6 +233,7 @@ cw::cloud2d cw::cloud2d::center(cv::Size imageSize) const
 
 cv::Mat cw::cloud2d::drawPoints(const cv::Mat& backgroundImage) const
 {
+  srand(enviroment::randomSeed);
   cv::Mat resultImage = backgroundImage.clone();
   for (const cv::Point2f& currentPoint : points)
   {
@@ -240,4 +248,15 @@ cv::Mat cw::cloud2d::drawPoints() const
 {
   cv::Mat background(cv::Mat::zeros(501, 750, CV_8UC3));
   return drawPoints(background);
+}
+
+double cw::cloud2d::errorOfMatches(const cloud2d& anotherCloud2d) const
+{
+  double result(0);
+  for (size_t i = 0; i < points.size(); i++)
+  {
+    double distance = enviroment::distance(points[i], anotherCloud2d.points[i]);
+    result += distance * distance;
+  }
+  return result;
 }

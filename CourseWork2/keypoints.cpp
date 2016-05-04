@@ -140,8 +140,10 @@ std::pair<cw::cloud2d, cw::cloud2d> cw::keypoints::descriptorFilter(const std::p
 std::pair<cw::cloud2d, cw::cloud2d> cw::keypoints::smartFilter(const std::pair<const keypoints&, const keypoints&>& keypointsPair, cv::Mat& fundamentalMatrix)
 {
   std::pair<cloud2d, cloud2d> allMatches(descriptorFilter(keypointsPair));
-  std::pair<cloud2d, cloud2d> filteredBydistance(cloud2d::filterByDistance(allMatches));
-  fundamentalMatrix = cloud2d::epipolarFilter(filteredBydistance);
-  std::pair<cloud2d, cloud2d> result(cloud2d::filterWithFundamentalMatrix(allMatches, fundamentalMatrix));
-  return result;
+  std::pair<cloud2d, cloud2d> filteredBydistance1(cloud2d::filterByDistance(allMatches));
+  fundamentalMatrix = cloud2d::epipolarFilter(filteredBydistance1);
+
+  //std::pair<cloud2d, cloud2d> filteredBydistance2(cloud2d::filterByDistance(allMatches, 100));
+  //std::pair<cloud2d, cloud2d> result(cloud2d::filterWithFundamentalMatrix(filteredBydistance2, fundamentalMatrix));
+  return filteredBydistance1;
 }

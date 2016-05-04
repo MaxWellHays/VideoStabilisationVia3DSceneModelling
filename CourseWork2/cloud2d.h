@@ -17,6 +17,7 @@ namespace cw
 
     void addPoint(cv::Point2f point);
 
+    static std::vector<double> epipolarRestrictionValues(const std::pair<const cloud2d&, const cloud2d&>&, const cv::Mat& fundamentalMat);
     static cv::Mat epipolarFilter(std::pair<cloud2d, cloud2d>& clouds, int method = cv::FM_RANSAC);
     static std::pair<cloud2d, cloud2d> filterWithFundamentalMatrix(const std::pair<const cloud2d&, const cloud2d&>& clouds, const cv::Mat& fundamentalMat);
 
@@ -35,6 +36,8 @@ namespace cw
     cv::Mat drawPoints(const cv::Mat& backgroundImage) const;
 
     cv::Mat drawPoints() const;
+
+    double errorOfMatches(const cloud2d& anotherCloud2d) const;
   };
 }
 

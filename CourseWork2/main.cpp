@@ -80,9 +80,27 @@ void saveImage(const cv::Mat& image, const std::string& name)
   cv::imwrite(name + ".png", image, compression_params);
 }
 
+void correctCameraMatrixCoeff(cw::cloud3d cloud3d, cw::cloud2d initialPoints, cv::Mat& R, cv::Mat& T)
+{
+  vector<double> errorSize(4, 0);
+  for (size_t i = 0; i < 4; i++)
+  {
+    cv::Mat tempR = ((i / 2) * 2 - 1) * R;
+    cv::Mat tempT = ((i % 2) * 2 - 1) * T;
+    cw::cloud2d projectedPoints = cloud3d.projectPoints(cw::enviroment::defaultF, tempR, tempT);
+    errorSize[i] = projectedPoints.errorOfMatches(initialPoints);
+  }
+
+  vector<double>::iterator minElement = std::min_element(errorSize.begin(), errorSize.end());
+  int minElementIndex = std::distance(errorSize.begin(), minElement);
+
+  R = ((minElementIndex / 2) * 2 - 1) * R;
+  T = ((minElementIndex % 2) * 2 - 1) * T;
+}
+
 void experementFunction()
 {
-  auto folderPath("C:\\Users\\UX32VD\\Documents\\coursework\\timelapse1\\2\\");
+  auto folderPath("C:\\Users\\UX32VD\\Documents\\coursework\\timelapse1\\test2\\");
   vector<cv::Mat> images(getImagesFromFolder(folderPath, std::regex(".+\\.((jpg)|(png))", std::regex_constants::icase)));
   if (images.size())
   {
@@ -94,8 +112,9 @@ void experementFunction()
 
     for (int i = 0; i < keypointsList.size() - 1; i++)
     {
-      cv::Mat fundamentalMat;
       std::pair<cw::keypoints, cw::keypoints> currentKeypointsPair(std::make_pair(keypointsList[i], keypointsList[i + 1]));
+
+      cv::Mat fundamentalMat;
       std::pair<cw::cloud2d, cw::cloud2d>& cloud2DPair = cw::keypoints::smartFilter(currentKeypointsPair, fundamentalMat);
 
 #ifdef DEBUG
@@ -112,15 +131,23 @@ void experementFunction()
       cw::cloud3d cloud3d = cw::cvPba::RunBundleAdjustment(cloud2DPair, R, T);
 
 #ifdef DEBUG
+      correctCameraMatrixCoeff(cloud3d, cloud2DPair.second, R, T);
+
+      cw::cloud2d projectPoints1 = cloud3d.projectPoints(cw::enviroment::defaultF);
+      cw::cloud2d projectPoints2 = cloud3d.projectPoints(cw::enviroment::defaultF, R, T);
+
+      auto instancePoints1 = cloud2DPair.first.drawPoints();
+      auto instancePoints2 = cloud2DPair.second.drawPoints();
+      auto projectedPoints1 = projectPoints1.drawPoints();
+      auto projectedPoints2 = projectPoints2.drawPoints();
+      auto matchesImage1 = cw::cloud2d::drawMatches(cloud2DPair.first, projectPoints1, true);
+      auto matchesImage2 = cw::cloud2d::drawMatches(cloud2DPair.second, projectPoints2, true);
+
       cloud2DPair.first.dump("pair1");
       cloud2DPair.second.dump("pair2");
       cloud3d.dump("bundleAdjustmentResult");
       cw::enviroment::dumpMat(R, "R");
       cw::enviroment::dumpMat(T, "T");
-      cw::cloud2d projectPoints = cloud3d.projectPoints(cw::enviroment::defaultF, R, T);
-      auto projectPointsImage = projectPoints.drawPoints();
-      auto instantPointsImage1 = cloud2DPair.first.drawPoints();
-      auto instantPointsImage2 = cloud2DPair.second.drawPoints();
 #endif
     }
   }
@@ -157,22 +184,47 @@ cv::Vec3d getEulerAngles(cv::Mat &rotCamerMatrix) {
   return eulerAngles;
 }
 
-int main(int argc, char** argv)
+void comparePointsZDepth()
 {
-  experementFunction();
-  return 0;
-
   cw::cloud2d points1("pair1");
   cw::cloud2d points2("pair2");
   cv::Mat R(cw::enviroment::loadMat("R"));
   cv::Mat T(cw::enviroment::loadMat("T"));
   cw::cloud3d spacePoints("bundleAdjustmentResult");
 
-  cv::Mat t100 = T * 100;
-  cv::Mat EulerAngles(getEulerAngles(R));
+  cw::cloud2d projectPoints1 = spacePoints.projectPoints(cw::enviroment::defaultF);
+  cw::cloud2d projectPoints2 = spacePoints.projectPoints(cw::enviroment::defaultF, R, T);
+
+  cv::Mat depthImage1(cv::imread("C:\\Users\\UX32VD\\Documents\\coursework\\testImages\\depth1.png", CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_COLOR));
+
+  vector<cv::Point2d> result;
+
+  for (size_t i = 0; i < projectPoints1.points.size(); i++)
+  {
+    int x = min(projectPoints1.points[i].x, depthImage1.cols - 1);
+    int y = min(projectPoints1.points[i].y, depthImage1.rows - 1);
+    
+    auto vec = depthImage1.at<cv::Vec3b>(y, x);
+    result.push_back(cv::Point2d());
+    result[i].x = vec[0];
+    result[i].y = cv::norm(spacePoints.vertexes[i]);
+    std::cout << i << std::endl;
+  }
+
+  cv::Mat depthCompasionMap(result);
+  cw::enviroment::dumpMat(depthCompasionMap, "DepthCompasion");
+}
+
+void loadDumpData()
+{
+  cw::cloud2d points1("pair1");
+  cw::cloud2d points2("pair2");
+  cv::Mat R(cw::enviroment::loadMat("R"));
+  cv::Mat T(cw::enviroment::loadMat("T"));
+  cw::cloud3d spacePoints("bundleAdjustmentResult");
 
   cw::cloud2d projectPoints1 = spacePoints.projectPoints(cw::enviroment::defaultF);
-  cw::cloud2d projectPoints2 = spacePoints.projectPoints(cw::enviroment::defaultF, -R, -T);
+  cw::cloud2d projectPoints2 = spacePoints.projectPoints(cw::enviroment::defaultF, R, T);
 
   cv::Mat m1(cv::Mat::zeros(501, 750, CV_8UC4));
   cv::Mat m2(cv::Mat::zeros(501, 750, CV_8UC4));
@@ -218,6 +270,12 @@ int main(int argc, char** argv)
   saveImage(t1, "4");
   saveImage(t2, "5");
   saveImage(t3, "6");
+}
 
+int main(int argc, char** argv)
+{
+  //experementFunction();
+  //loadDumpData();
+  comparePointsZDepth();
   return 0;
 }

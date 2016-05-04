@@ -13,6 +13,7 @@ namespace cw
     static cv::Mat loadMat(const std::string& name);
     static double distance(cv::Vec3f line, cv::Point2f point);
     static double distance(cv::Point2f point1, cv::Point2f point2);
+    static const int randomSeed = 10;
   };
 }
 
