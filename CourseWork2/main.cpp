@@ -276,6 +276,30 @@ int main(int argc, char** argv)
 {
   //experementFunction();
   //loadDumpData();
-  comparePointsZDepth();
+  //comparePointsZDepth();
+
+  auto folderPath("C:\\Users\\UX32VD\\Documents\\coursework\\timelapse1\\2\\");
+  vector<cv::Mat> images(getImagesFromFolder(folderPath, std::regex(".+\\.((jpg)|(png))", std::regex_constants::icase)));
+  if (images.size())
+  {
+    std::vector<cw::keypoints> keypointsList(cw::keypoints::createKeypoints(images));
+
+#ifdef DEBUG
+    std::vector<cv::Mat> keypointsImages(cw::keypoints::drawKeypoints(keypointsList, true));
+#endif
+
+    std::vector<std::pair<cw::cloud2d, cw::cloud2d>> cloud2dPairs(cw::keypoints::oldGoodDescriptorFilter(keypointsList));
+#ifdef DEBUG
+    auto keypointsImage1(cloud2dPairs[0].first.drawPoints(keypointsImages[0]));
+    auto keypointsImage2(cloud2dPairs[0].second.drawPoints(keypointsImages[1]));
+    auto matchesImage(cw::cloud2d::drawMatches(cloud2dPairs[0].first, cloud2dPairs[0].second, true));
+#endif
+
+    auto fundamentalMat = cw::cloud2d::epipolarFilter(cloud2dPairs[0]);
+#ifdef DEBUG
+    auto matchesImage2(cw::cloud2d::drawMatches(cloud2dPairs[0].first, cloud2dPairs[0].second, true));
+#endif
+  }
+
   return 0;
 }

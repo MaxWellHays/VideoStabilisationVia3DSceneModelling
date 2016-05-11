@@ -8,8 +8,8 @@ namespace cw
   class cloud3d
   {
   private:
-    cloud3d();
   public:
+    cloud3d();
     ~cloud3d();
     explicit cloud3d(const std::vector<cv::Point3d>& points);
     explicit cloud3d(const std::string& nameForLoad);

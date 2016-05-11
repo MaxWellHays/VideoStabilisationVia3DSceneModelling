@@ -168,6 +168,12 @@ cv::Mat cw::cloud2d::drawMatches(const cw::cloud2d& cloud1, const cw::cloud2d& c
   for (int i = 0; i < cloud1.points.size(); ++i)
   {
     auto c = cv::Scalar(rand() & 255, rand() & 255, rand() & 255);
+    cv::circle(result, cloud1.points[i], 6, cw::enviroment::blackColor, -1);
+    cv::circle(result, cloud2.points[i], 6, cw::enviroment::blackColor, -1);
+    if (drawLine)
+    {
+      cv::line(result, cloud1.points[i], cloud2.points[i], cw::enviroment::blackColor, 3);
+    }
     cv::circle(result, cloud1.points[i], 5, c, -1);
     cv::circle(result, cloud2.points[i], 5, c, -1);
     if (drawLine)

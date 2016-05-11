@@ -4,7 +4,7 @@
 cv::SIFT cw::keypoints::detector;
 cv::FlannBasedMatcher cw::keypoints::matcher;
 
-std::vector<cv::DMatch> cw::keypoints::getAllFirstBestMatches(cv::Mat& descriptor1, cv::Mat& descriptor2)
+std::vector<cv::DMatch> cw::keypoints::getAllFirstBestMatches(const cv::Mat& descriptor1, const cv::Mat& descriptor2)
 {
   std::vector<cv::DMatch> matches;
   matcher.match(descriptor1, descriptor2, matches);
@@ -22,7 +22,7 @@ std::vector<cv::DMatch> cw::keypoints::getAllKFirstBestMatches(const cv::Mat& de
   return matches;
 }
 
-std::vector<cv::DMatch> cw::keypoints::getGoodMatches(cv::Mat& descriptor1, cv::Mat& descriptor2)
+std::vector<cv::DMatch> cw::keypoints::getGoodMatches(const cv::Mat& descriptor1, const cv::Mat& descriptor2)
 {
   std::vector<cv::DMatch> matches(getAllFirstBestMatches(descriptor1, descriptor2));
 
@@ -117,6 +117,48 @@ std::vector<std::pair<cw::cloud2d, cw::cloud2d>> cw::keypoints::descriptorFilter
 
       result.back().first.addPoint(point1);
       result.back().second.addPoint(point2);
+    }
+  }
+  return result;
+}
+
+std::vector<std::pair<cw::cloud2d, cw::cloud2d>> cw::keypoints::oldGoodDescriptorFilter(const std::vector<keypoints>& keypointses)
+{
+  std::vector<std::vector<cv::DMatch>> matches;
+  for (int i = 0; i < keypointses.size() - 1; ++i)
+  {
+    matches.push_back(getGoodMatches(keypointses[i].descriptor, keypointses[i + 1].descriptor));
+  }
+
+  std::vector<std::pair<cloud2d, cloud2d>> result;
+  for (auto k = 0; k < matches.size(); ++k)
+  {
+    result.push_back(std::make_pair(cloud2d(), cloud2d()));
+    for (auto i = 0; i < matches[k].size(); ++i)
+    {
+      result.back().first.addPoint(keypointses[k].key_points[matches[k][i].queryIdx].pt);
+      result.back().second.addPoint(keypointses[k + 1].key_points[matches[k][i].trainIdx].pt);
+    }
+  }
+  return result;
+}
+
+std::vector<std::pair<cw::cloud2d, cw::cloud2d>> cw::keypoints::oldFirstDescriptorFilter(const std::vector<keypoints>& keypointses)
+{
+  std::vector<std::vector<cv::DMatch>> matches;
+  for (int i = 0; i < keypointses.size() - 1; ++i)
+  {
+    matches.push_back(getAllFirstBestMatches(keypointses[i].descriptor, keypointses[i + 1].descriptor));
+  }
+
+  std::vector<std::pair<cloud2d, cloud2d>> result;
+  for (auto k = 0; k < matches.size(); ++k)
+  {
+    result.push_back(std::make_pair(cloud2d(), cloud2d()));
+    for (auto i = 0; i < matches[k].size(); ++i)
+    {
+      result.back().first.addPoint(keypointses[k].key_points[matches[k][i].queryIdx].pt);
+      result.back().second.addPoint(keypointses[k + 1].key_points[matches[k][i].trainIdx].pt);
     }
   }
   return result;
